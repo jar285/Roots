@@ -1,0 +1,35 @@
+name: roots
+description: "Plant Selfie (working codename Roots): a private, calm daily companion. One selfie and one self-reported mood per local day grow a deterministic personal plant."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  # Toolchain baseline: Flutter 3.38.5 stable / Dart 3.10.4 (see docs/decisions/0001).
+  sdk: '>=3.10.4 <3.11.0'
+
+# Versions are pinned exactly (see docs/decisions/0001-sprint-0-baseline.md).
+# Upgrades are deliberate, recorded decisions — not side effects.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_riverpod: 3.3.2
+  go_router: 17.5.0
+  drift: 2.31.0
+  drift_flutter: 0.2.8
+  path_provider: 2.1.6
+  camera: 0.12.0+2
+  image: 4.9.2
+  uuid: 4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: 6.0.0
+  drift_dev: 2.31.0
+  build_runner: 2.15.1
+
+flutter:
+  uses-material-design: true
