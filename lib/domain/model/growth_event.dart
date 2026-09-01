@@ -39,4 +39,39 @@ class GrowthEvent {
   final GrowthDelta growthDelta;
   final DateTime createdAtUtc;
   final DateTime updatedAtUtc;
+
+  @override
+  bool operator ==(Object other) {
+    return other is GrowthEvent &&
+        other.id == id &&
+        other.installationId == installationId &&
+        other.localDate == localDate &&
+        other.checkedInAtUtc == checkedInAtUtc &&
+        other.timezoneOffsetMinutes == timezoneOffsetMinutes &&
+        other.timeCategory == timeCategory &&
+        other.mood == mood &&
+        other.selfieFileName == selfieFileName &&
+        other.randomSeed == randomSeed &&
+        other.algorithmVersion == algorithmVersion &&
+        other.growthDelta == growthDelta &&
+        other.createdAtUtc == createdAtUtc &&
+        other.updatedAtUtc == updatedAtUtc;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    installationId,
+    localDate,
+    checkedInAtUtc,
+    timezoneOffsetMinutes,
+    timeCategory,
+    mood,
+    selfieFileName,
+    randomSeed,
+    algorithmVersion,
+    growthDelta,
+    createdAtUtc,
+    updatedAtUtc,
+  );
 }

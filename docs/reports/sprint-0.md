@@ -73,6 +73,10 @@ copy matches that decision.
 - `flutter run -d macos` — **not verified: Xcode is not installed** (Command Line Tools
   only). Disk was freed to 60 GiB for the user's Xcode install; the run check moves to
   the Sprint 3 gate at the latest.
+  - **Addendum 2026-09-01 (during Sprint 2):** Xcode 26.3 installed, licensed, and
+    first-launch completed by the user; `flutter build macos --debug` then succeeded
+    (`✓ Built build/macos/Build/Products/Debug/roots.app`). The macOS toolchain gap is
+    closed; an interactive `flutter run -d macos` remains a manual step.
 - `flutter test integration_test` — not applicable: directory deliberately absent until
   Sprint 3.
 - `patrol test` — not applicable until Sprint 7.

@@ -65,6 +65,18 @@ deliberately upgraded.
 `flutter test integration_test` becomes applicable at Sprint 3; `patrol test` at Sprint 7.
 Until then, reports mark them "not applicable, with reason".
 
+Drift codegen (after editing `lib/infrastructure/drift/companion_database.dart`):
+
+    dart run build_runner build --delete-conflicting-outputs --force-jit
+
+`--force-jit` is required: the camera plugin's `objective_c` dependency declares native
+build hooks, and build_runner's default AOT compilation refuses to run with hooks
+present. When the schema version changes, also dump a new fixture and regenerate the
+verifier helpers, then extend the migration tests:
+
+    dart run drift_dev schema dump lib/infrastructure/drift/companion_database.dart drift_schemas/
+    dart run drift_dev schema generate drift_schemas/ test/infrastructure/drift/generated/
+
 ## Working rules
 
 - Follow the sprint workflow in the development philosophy: quote the spec slice, state
