@@ -1,35 +1,52 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
-void main() {
-  runApp(const RootsApp());
-}
+import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
-/// Sprint 0 shell: proves the pinned toolchain builds, runs, and tests.
-/// Product screens arrive in later sprints; the contract lives in docs/.
-class RootsApp extends StatelessWidget {
-  const RootsApp({super.key});
+import 'app.dart';
+import 'infrastructure/drift/companion_database.dart';
+import 'infrastructure/drift/drift_companion_repository.dart';
+import 'infrastructure/fs_managed_media_store.dart';
+import 'infrastructure/simulated_camera_source.dart';
+import 'infrastructure/system_clock.dart';
+import 'infrastructure/system_seed_source.dart';
+import 'infrastructure/uuid_id_source.dart';
+import 'presentation/app_providers.dart';
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Plant Selfie',
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF10151C),
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Text(
-            'PLANT SELFIE',
-            style: TextStyle(
-              color: Color(0xFFF4F7F8),
-              fontSize: 24,
-              letterSpacing: 4,
-            ),
+/// Composition root: the only place that touches path_provider and wires
+/// production adapters. Everything below it is injected and testable.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final documents = await getApplicationDocumentsDirectory();
+  final mediaDirectory = Directory('${documents.path}/plant_selfie_media');
+
+  // Spec A.2: database file plant_selfie.sqlite.
+  final database = CompanionDatabase(driftDatabase(name: 'plant_selfie'));
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        repositoryProvider.overrideWithValue(
+          DriftCompanionRepository(
+            database: database,
+            idSource: const UuidIdSource(),
           ),
         ),
-      ),
-    );
-  }
+        mediaStoreProvider.overrideWithValue(
+          FsManagedMediaStore(baseDirectory: mediaDirectory),
+        ),
+        clockProvider.overrideWithValue(const SystemClock()),
+        // All platforms simulate capture until Sprint 6 (ADR 0004 #3).
+        cameraSourceProvider.overrideWith(
+          (ref) => SimulatedCameraSource(clock: ref.watch(clockProvider)),
+        ),
+        idSourceProvider.overrideWithValue(const UuidIdSource()),
+        seedSourceProvider.overrideWithValue(SystemSeedSource()),
+      ],
+      child: const RootsApp(),
+    ),
+  );
 }

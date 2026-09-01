@@ -58,12 +58,13 @@ deliberately upgraded.
 ## Standard commands
 
     flutter pub get
-    dart format --output=none --set-exit-if-changed lib test
+    dart format --output=none --set-exit-if-changed lib test integration_test
     flutter analyze
     flutter test
+    flutter test integration_test -d macos
 
-`flutter test integration_test` becomes applicable at Sprint 3; `patrol test` at Sprint 7.
-Until then, reports mark them "not applicable, with reason".
+`patrol test` becomes applicable at Sprint 7; until then, reports mark it "not
+applicable, with reason". The integration journey needs full Xcode (macOS target).
 
 Drift codegen (after editing `lib/infrastructure/drift/companion_database.dart`):
 

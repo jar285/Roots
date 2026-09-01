@@ -9,6 +9,11 @@ import '../domain/model/time_category.dart';
 /// [selfieFileName] is null when no new photo was prepared: on a same-day
 /// correction the existing photo reference is kept (spec §4.5); on a first
 /// create it is required.
+///
+/// [proposedEventId] lets the caller resolve the event id before commit —
+/// managed photo filenames are "event id + extension" (spec A.9), so the id
+/// must exist before the row does (ADR 0004). Used on create; ignored on
+/// update, where the stored id always wins. Null lets the repository mint one.
 class DailyCheckInDraft {
   const DailyCheckInDraft({
     required this.localDate,
@@ -20,8 +25,10 @@ class DailyCheckInDraft {
     required this.randomSeed,
     required this.algorithmVersion,
     required this.growthDelta,
+    this.proposedEventId,
   });
 
+  final String? proposedEventId;
   final String localDate;
   final DateTime checkedInAtUtc;
   final int timezoneOffsetMinutes;

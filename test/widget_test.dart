@@ -1,11 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roots/main.dart';
+import 'support/pump_app.dart';
 
 void main() {
-  testWidgets('Sprint 0 shell renders', (tester) async {
-    await tester.pumpWidget(const RootsApp());
+  testWidgets('the app boots to Home without any account or network', (
+    tester,
+  ) async {
+    await pumpApp(tester);
 
-    expect(find.text('PLANT SELFIE'), findsOneWidget);
+    // Straight into the companion: no sign-in, no onboarding wall.
+    expect(find.text('GROW SOMETHING PERSONAL'), findsOneWidget);
   });
 }

@@ -43,6 +43,7 @@ void runCompanionRepositoryContractTests({
     String? selfieFileName = 'photo.jpg',
     int randomSeed = 7,
     String paletteId = 'v1.calm',
+    String? proposedEventId,
   }) {
     return DailyCheckInDraft(
       localDate: localDate,
@@ -54,6 +55,7 @@ void runCompanionRepositoryContractTests({
       randomSeed: randomSeed,
       algorithmVersion: 1,
       growthDelta: delta(paletteId: paletteId),
+      proposedEventId: proposedEventId,
     );
   }
 
@@ -101,6 +103,14 @@ void runCompanionRepositoryContractTests({
         throwsArgumentError,
       );
     });
+
+    test('honors a proposed event id on create (ADR 0004)', () async {
+      final saved = await repository.upsertDailyCheckIn(
+        draft(proposedEventId: 'pre-resolved-id'),
+      );
+
+      expect(saved.id, 'pre-resolved-id');
+    });
   });
 
   group('upsertDailyCheckIn — same-day correction (spec §4.5)', () {
@@ -144,6 +154,20 @@ void runCompanionRepositoryContractTests({
 
         expect(updated.selfieFileName, 'first.jpg');
         expect(updated.mood, Mood.happy);
+      },
+    );
+
+    test(
+      'ignores a proposed event id on update — the stored id wins',
+      () async {
+        final original = await repository.upsertDailyCheckIn(draft());
+
+        final updated = await repository.upsertDailyCheckIn(
+          draft(mood: Mood.happy, proposedEventId: 'some-other-id'),
+        );
+
+        expect(updated.id, original.id);
+        expect(await repository.allEvents(), hasLength(1));
       },
     );
 

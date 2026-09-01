@@ -65,7 +65,7 @@ class DriftCompanionRepository implements CompanionRepository {
             'required when creating the first event for a date',
           );
         }
-        final id = idSource.nextId();
+        final id = draft.proposedEventId ?? idSource.nextId();
         await database
             .into(database.growthEvents)
             .insert(
