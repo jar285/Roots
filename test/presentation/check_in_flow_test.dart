@@ -54,6 +54,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('HOW ARE YOU FEELING?'), findsOneWidget);
+    // Design 3: the captured draft selfie shows in the upper stage.
+    expect(find.byType(Image), findsOneWidget);
 
     final continueButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'CONTINUE'),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/model/growth_event.dart';
 import '../app_providers.dart';
+import '../home/date_line.dart';
 import '../theme/app_theme.dart';
 import '../theme/mood_glyph.dart';
 
@@ -17,7 +18,15 @@ class HistoryScreen extends ConsumerWidget {
     final history = ref.watch(historyProvider);
 
     return Scaffold(
-      appBar: AppBar(backgroundColor: AppTokens.background),
+      // context.go() replaces the stack, so back must be explicit.
+      appBar: AppBar(
+        backgroundColor: AppTokens.background,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () => context.go('/'),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -96,6 +105,14 @@ class _HistoryRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final todayIso = switch (ref.watch(companionProvider)) {
+      AsyncData(:final value) => value.todayLocalDate,
+      _ => ref.read(clockProvider).now().localDate,
+    };
+    final metadata =
+        '${compactDate(event.localDate, todayIso: todayIso)} · '
+        '${event.timeCategory.name.toUpperCase()}';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.spacing * 2),
       child: Material(
@@ -104,62 +121,163 @@ class _HistoryRow extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTokens.radius),
           onTap: () => context.go('/history/${event.id}'),
-          child: Row(
-            children: [
-              // Mood-accent edge strip (Design 3 card, ADR 0006 #5).
-              Container(
-                width: 4,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: event.mood.accent,
-                  borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(AppTokens.radius),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTokens.spacing * 3),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+          // Row-level photo lookup so a missing photo can be explained
+          // inline (spec A.7), matching Design 3's expanded row.
+          child: FutureBuilder(
+            future: ref
+                .watch(mediaStoreProvider)
+                .readManagedPhoto(event.selfieFileName),
+            builder: (context, snapshot) {
+              final bytes = snapshot.data;
+              final missing =
+                  snapshot.connectionState == ConnectionState.done &&
+                  bytes == null;
+
+              return IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Mood-accent edge strip (Design 3 card, ADR 0006 #5).
+                    Container(
+                      width: 4,
+                      decoration: BoxDecoration(
+                        color: event.mood.accent,
+                        borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(AppTokens.radius),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTokens.spacing * 3,
+                          vertical: AppTokens.spacing * 2.5,
+                        ),
+                        child: Row(
                           children: [
-                            // Design 3: mood leads in bold with its glyph.
-                            Row(
-                              children: [
-                                MoodGlyph(mood: event.mood, size: 15),
-                                const SizedBox(width: AppTokens.spacing * 2),
-                                Text(
-                                  event.mood.label,
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                              ],
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Design 3: mood leads in bold + glyph.
+                                  Row(
+                                    children: [
+                                      MoodGlyph(mood: event.mood, size: 15),
+                                      const SizedBox(
+                                        width: AppTokens.spacing * 2,
+                                      ),
+                                      Text(
+                                        event.mood.label,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppTokens.spacing),
+                                  Text(
+                                    metadata,
+                                    style: eyebrowStyle.copyWith(
+                                      fontSize: 10.5,
+                                      letterSpacing: 1.6,
+                                    ),
+                                  ),
+                                  if (missing) ...[
+                                    const SizedBox(
+                                      height: AppTokens.spacing * 2,
+                                    ),
+                                    Text(
+                                      'Photo unavailable. Your check-in and '
+                                      'growth are still here.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppTokens.textSecondary,
+                                          ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: AppTokens.spacing),
-                            Text(
-                              '${event.localDate} · '
-                              '${event.timeCategory.name}',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: AppTokens.textSecondary),
+                            const SizedBox(width: AppTokens.spacing * 3),
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: bytes != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(
+                                        AppTokens.radius / 2,
+                                      ),
+                                      child: Image.memory(
+                                        bytes,
+                                        fit: BoxFit.cover,
+                                        gaplessPlayback: true,
+                                        errorBuilder: (_, _, _) =>
+                                            const _DashedPlaceholder(),
+                                      ),
+                                    )
+                                  : const _DashedPlaceholder(),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: AppTokens.spacing * 3),
-                      EventThumbnail(event: event, size: 56),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
+
+/// Design 3's missing-photo thumbnail: a quiet dashed frame with a slash.
+class _DashedPlaceholder extends StatelessWidget {
+  const _DashedPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(painter: _DashedBorderPainter());
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppTokens.textSecondary.withValues(alpha: 0.45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(AppTokens.radius / 2),
+    );
+
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + 4), paint);
+        distance += 8;
+      }
+    }
+
+    canvas.drawLine(
+      Offset(size.width * 0.3, size.height * 0.7),
+      Offset(size.width * 0.7, size.height * 0.3),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) => false;
 }
 
 /// Thumbnail or the neutral missing-photo placeholder — absence never hides

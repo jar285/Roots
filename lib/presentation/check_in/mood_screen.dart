@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../domain/model/mood.dart';
 import '../theme/app_theme.dart';
 import '../theme/mood_glyph.dart';
+import '../theme/stage_sheet.dart';
 import 'check_in_flow.dart';
+import 'draft_photo_view.dart';
 
 /// Mood answers: how do I describe how I feel? Always self-report —
 /// label, supporting phrase, and selection state, never color alone.
@@ -23,61 +25,92 @@ class MoodScreen extends ConsumerWidget {
             constraints: const BoxConstraints(
               maxWidth: AppTokens.contentMaxWidth,
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppTokens.spacing * 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  clampedDisplay(
-                    child: const Text(
-                      'HOW ARE YOU FEELING?',
-                      style: displayStyle,
-                    ),
-                  ),
-                  const SizedBox(height: AppTokens.spacing * 2),
-                  Text(
-                    'You choose it. Roots never reads your face.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTokens.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppTokens.spacing * 4),
-                  Expanded(
-                    child: GridView(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: AppTokens.spacing * 3,
-                        crossAxisSpacing: AppTokens.spacing * 3,
-                        // Cards grow with the user's text scale instead
-                        // of clipping labels (UI/UX philosophy).
-                        mainAxisExtent:
-                            64 + MediaQuery.textScalerOf(context).scale(52),
+            child: StagePanelLayout(
+              mode: StagePanelMode.stageFraction,
+              stage: ColoredBox(
+                color: AppTokens.background,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: 92, height: 118, child: DraftPhotoView()),
+                      const SizedBox(height: AppTokens.spacing * 2),
+                      clampedDisplay(
+                        child: Text(
+                          'SELFIE',
+                          style: eyebrowStyle.copyWith(fontSize: 10),
+                        ),
                       ),
-                      children: [
-                        for (final mood in Mood.values)
-                          _MoodOption(
-                            mood: mood,
-                            selected: draft.mood == mood,
-                            onTap: () => ref
-                                .read(checkInFlowProvider.notifier)
-                                .setMood(mood),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: AppTokens.spacing * 4),
-                  FilledButton(
-                    onPressed: draft.mood == null
-                        ? null
-                        : () => context.go('/check-in/confirm'),
-                    child: const Text('CONTINUE'),
+                ),
+              ),
+              panel: RitualPanel(
+                expand: true,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTokens.spacing * 6,
+                    AppTokens.spacing * 2,
+                    AppTokens.spacing * 6,
+                    AppTokens.spacing * 4,
                   ),
-                  const SizedBox(height: AppTokens.spacing * 2),
-                  TextButton(
-                    onPressed: () => context.go('/check-in/capture'),
-                    child: const Text('BACK'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      clampedDisplay(
+                        child: const Text(
+                          'HOW ARE YOU FEELING?',
+                          style: displayStyle,
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.spacing * 2),
+                      Text(
+                        'You choose it. Roots never reads your face.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTokens.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.spacing * 4),
+                      Expanded(
+                        child: GridView(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: AppTokens.spacing * 3,
+                                crossAxisSpacing: AppTokens.spacing * 3,
+                                // Cards grow with the user's text scale instead
+                                // of clipping labels (UI/UX philosophy).
+                                mainAxisExtent:
+                                    64 +
+                                    MediaQuery.textScalerOf(context).scale(52),
+                              ),
+                          children: [
+                            for (final mood in Mood.values)
+                              _MoodOption(
+                                mood: mood,
+                                selected: draft.mood == mood,
+                                onTap: () => ref
+                                    .read(checkInFlowProvider.notifier)
+                                    .setMood(mood),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.spacing * 4),
+                      FilledButton(
+                        onPressed: draft.mood == null
+                            ? null
+                            : () => context.go('/check-in/confirm'),
+                        child: const Text('CONTINUE'),
+                      ),
+                      const SizedBox(height: AppTokens.spacing * 2),
+                      TextButton(
+                        onPressed: () => context.go('/check-in/capture'),
+                        child: const Text('BACK'),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -109,7 +142,12 @@ class _MoodOption extends StatelessWidget {
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? AppTokens.surfaceRaised : AppTokens.surface,
+        color: selected
+            ? Color.alphaBlend(
+                AppTokens.plantGreen.withValues(alpha: 0.10),
+                AppTokens.surface,
+              )
+            : AppTokens.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radius),
           side: selected

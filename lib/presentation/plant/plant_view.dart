@@ -124,11 +124,11 @@ class OrganicPlantPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final layout = PlantLayout.compute(plant, size);
 
-    _paintGroundAndPot(canvas, size, layout);
+    _paintGroundAndPot(canvas, layout);
     _paintTrunk(canvas, layout);
-    _paintElements(canvas, layout.branches, trunkX: layout.trunkBase.dx);
-    _paintElements(canvas, layout.leaves, trunkX: layout.trunkBase.dx);
-    _paintElements(canvas, layout.decorations, trunkX: layout.trunkBase.dx);
+    _paintBranches(canvas, layout);
+    _paintLeaves(canvas, layout.leaves);
+    _paintDecorations(canvas, layout.decorations);
     if (layout.mature && progress >= 1.0) {
       _paintMatureFlourish(canvas, layout);
     }
@@ -139,7 +139,7 @@ class OrganicPlantPainter extends CustomPainter {
     return (index + 1) / total <= progress + 1e-9;
   }
 
-  void _paintGroundAndPot(Canvas canvas, Size size, PlantLayout layout) {
+  void _paintGroundAndPot(Canvas canvas, PlantLayout layout) {
     final base = layout.trunkBase;
     canvas.drawLine(
       Offset(base.dx - 70, base.dy + 14),
@@ -162,106 +162,98 @@ class OrganicPlantPainter extends CustomPainter {
   }
 
   void _paintTrunk(Canvas canvas, PlantLayout layout) {
-    final base = layout.trunkBase;
-    final fullLength = base.dy - layout.trunkTop.dy;
-    final revealedTop = Offset(base.dx, base.dy - fullLength * progress);
-
-    // A gentle deterministic S-curve keeps the stem organic.
-    final bend = math.min(22.0, fullLength * 0.11);
-    final path = Path()
-      ..moveTo(base.dx, base.dy)
-      ..cubicTo(
-        base.dx - bend,
-        base.dy - (base.dy - revealedTop.dy) * 0.35,
-        base.dx + bend,
-        base.dy - (base.dy - revealedTop.dy) * 0.7,
-        revealedTop.dx,
-        revealedTop.dy,
-      );
+    final points = layout.trunkPath;
+    final visible = math.max(2, (points.length * progress).ceil());
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < visible && i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
     canvas.drawPath(
       path,
       Paint()
         ..color = AppTokens.plantGreen
         ..style = PaintingStyle.stroke
         ..strokeWidth = layout.trunkThickness
-        ..strokeCap = StrokeCap.round,
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
     );
   }
 
-  void _paintElements(
-    Canvas canvas,
-    List<PlacedElement> elements, {
-    required double trunkX,
-  }) {
-    for (var i = 0; i < elements.length; i++) {
-      if (!_revealed(i, elements.length)) continue;
-      final element = elements[i];
-      switch (element.kind) {
-        case PlantElementKind.branch:
-          _paintBranch(canvas, element, trunkX);
-        case PlantElementKind.leaf:
-          // A fine petiole ties each leaf to the stem so the plant reads as
-          // one organism (Design 3 QA pass).
-          canvas.drawLine(
-            Offset(trunkX, element.center.dy + element.size * 0.3),
-            element.center,
-            Paint()
-              ..color = AppTokens.plantGreen.withValues(alpha: 0.45)
-              ..strokeWidth = 1.6
-              ..strokeCap = StrokeCap.round,
-          );
-          _paintLeaf(canvas, element);
-        case PlantElementKind.decoration:
-          canvas.drawCircle(
-            element.center,
-            element.size,
-            Paint()..color = element.color,
-          );
-      }
+  void _paintBranches(Canvas canvas, PlantLayout layout) {
+    final branches = layout.branches;
+    for (var i = 0; i < branches.length; i++) {
+      if (!_revealed(i, branches.length)) continue;
+      final branch = branches[i];
+      canvas.drawPath(
+        Path()
+          ..moveTo(branch.start.dx, branch.start.dy)
+          ..quadraticBezierTo(
+            branch.control.dx,
+            branch.control.dy,
+            branch.tip.dx,
+            branch.tip.dy,
+          ),
+        Paint()
+          ..color = branch.color.withValues(alpha: 0.9)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.6
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(branch.tip, 3.0, Paint()..color = branch.color);
     }
   }
 
-  void _paintBranch(Canvas canvas, PlacedElement element, double trunkX) {
-    // Branches grow out of the trunk toward their placed tip, so they read
-    // as part of one plant rather than floating marks.
-    final start = Offset(trunkX, element.center.dy + element.size * 0.35);
-    final paint = Paint()
-      ..color = element.color.withValues(alpha: 0.9)
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(
-      Path()
-        ..moveTo(start.dx, start.dy)
-        ..quadraticBezierTo(
-          (start.dx + element.center.dx) / 2,
-          element.center.dy + element.size * 0.15,
-          element.center.dx,
-          element.center.dy,
+  void _paintLeaves(Canvas canvas, List<PlacedElement> leaves) {
+    for (var i = 0; i < leaves.length; i++) {
+      if (!_revealed(i, leaves.length)) continue;
+      final leaf = leaves[i];
+      // Petiole from the stem it grows on (connected organism).
+      canvas.drawLine(
+        leaf.anchor,
+        leaf.center,
+        Paint()
+          ..color = AppTokens.plantGreen.withValues(alpha: 0.5)
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.save();
+      canvas.translate(leaf.center.dx, leaf.center.dy);
+      canvas.rotate(leaf.rotation);
+      final r = leaf.size;
+      canvas.drawPath(
+        Path()..addRRect(
+          RRect.fromRectAndCorners(
+            Rect.fromCenter(center: Offset.zero, width: r * 2, height: r * 1.2),
+            topRight: Radius.circular(r * 2),
+            bottomLeft: Radius.circular(r * 2),
+            topLeft: const Radius.circular(2),
+            bottomRight: const Radius.circular(2),
+          ),
         ),
-      paint,
-    );
-    canvas.drawCircle(element.center, 3.2, Paint()..color = element.color);
+        Paint()..color = leaf.color,
+      );
+      canvas.restore();
+    }
   }
 
-  void _paintLeaf(Canvas canvas, PlacedElement element) {
-    canvas.save();
-    canvas.translate(element.center.dx, element.center.dy);
-    canvas.rotate(element.rotation);
-    final r = element.size;
-    canvas.drawPath(
-      Path()..addRRect(
-        RRect.fromRectAndCorners(
-          Rect.fromCenter(center: Offset.zero, width: r * 2, height: r * 1.2),
-          topRight: Radius.circular(r * 2),
-          bottomLeft: Radius.circular(r * 2),
-          topLeft: const Radius.circular(2),
-          bottomRight: const Radius.circular(2),
-        ),
-      ),
-      Paint()..color = element.color,
-    );
-    canvas.restore();
+  void _paintDecorations(Canvas canvas, List<PlacedElement> decorations) {
+    for (var i = 0; i < decorations.length; i++) {
+      if (!_revealed(i, decorations.length)) continue;
+      final decoration = decorations[i];
+      canvas.drawLine(
+        decoration.anchor,
+        decoration.center,
+        Paint()
+          ..color = decoration.color.withValues(alpha: 0.4)
+          ..strokeWidth = 1.2
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(
+        decoration.center,
+        decoration.size,
+        Paint()..color = decoration.color,
+      );
+    }
   }
 
   void _paintMatureFlourish(Canvas canvas, PlantLayout layout) {

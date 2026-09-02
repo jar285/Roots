@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fakes.dart';
@@ -11,8 +11,10 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    expect(find.text('HISTORY'), findsOneWidget);
-    expect(find.text('SETTINGS'), findsOneWidget);
+    // Quiet icon treatment (user-approved): both destinations visible with
+    // labels for assistive tech.
+    expect(find.byTooltip('History'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
   });
 
   testWidgets('empty history explains itself without implying failure', (
@@ -20,7 +22,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('HISTORY'));
+    await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
 
     expect(find.text('Completed check-ins will appear here.'), findsOneWidget);
@@ -50,16 +52,62 @@ void main() {
     await tester.tap(find.text('ADD TODAY\'S GROWTH'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('HISTORY'));
+    await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
 
-    // Design 3 rows: mood leads in bold, date + time category beneath.
-    final sept2 = tester.getTopLeft(find.text('2026-09-02 · afternoon'));
-    final sept1 = tester.getTopLeft(find.text('2026-09-01 · afternoon'));
+    // Design 3 rows: mood leads in bold; compact date + time category
+    // beneath (spec §6.5 keeps the time category).
+    final sept2 = tester.getTopLeft(find.text('TODAY · 2 SEPT · AFTERNOON'));
+    final sept1 = tester.getTopLeft(find.text('TUE 1 SEPT · AFTERNOON'));
     expect(sept2.dy, lessThan(sept1.dy), reason: 'newest first');
     expect(find.text('Happy'), findsOneWidget);
     expect(find.text('Calm'), findsOneWidget);
     expect(find.text('2 CHECK-INS · KEPT ON THIS DEVICE'), findsOneWidget);
+  });
+
+  testWidgets('History and event detail have explicit, working back '
+      'affordances (context.go leaves no stack to infer)', (tester) async {
+    final repository = await repositoryWithCheckInOn(day: 1);
+    await pumpApp(
+      tester,
+      repository: repository,
+      clock: FixedClock(momentOn(day: 2)),
+    );
+
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('TUE 1 SEPT · AFTERNOON'));
+    await tester.pumpAndSettle();
+    expect(find.text('DELETE THIS CHECK-IN'), findsOneWidget);
+
+    // Detail -> History.
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('1 CHECK-IN · KEPT ON THIS DEVICE'), findsOneWidget);
+
+    // History -> Home.
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('TAKE TODAY\'S SELFIE'), findsOneWidget);
+  });
+
+  testWidgets('a missing photo is explained inline in the history row '
+      '(spec A.7)', (tester) async {
+    final repository = await repositoryWithCheckInOn(day: 1);
+    // Media store starts empty in pumpApp -> the photo file is "missing".
+    await pumpApp(
+      tester,
+      repository: repository,
+      clock: FixedClock(momentOn(day: 2)),
+    );
+
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Photo unavailable. Your check-in and growth are still here.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('event detail explains the contribution and a missing photo '
@@ -72,9 +120,9 @@ void main() {
       clock: FixedClock(momentOn(day: 2)),
     );
 
-    await tester.tap(find.text('HISTORY'));
+    await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2026-09-01 · afternoon'));
+    await tester.tap(find.text('TUE 1 SEPT · AFTERNOON'));
     await tester.pumpAndSettle();
 
     expect(
@@ -96,9 +144,9 @@ void main() {
       clock: FixedClock(momentOn(day: 2)),
     );
 
-    await tester.tap(find.text('HISTORY'));
+    await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2026-09-01 · afternoon'));
+    await tester.tap(find.text('TUE 1 SEPT · AFTERNOON'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('DELETE THIS CHECK-IN'));
     await tester.pumpAndSettle();
@@ -136,7 +184,7 @@ void main() {
       clock: FixedClock(momentOn(day: 2)),
     );
 
-    await tester.tap(find.text('SETTINGS'));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('Local Data'), findsOneWidget);
@@ -181,6 +229,8 @@ void main() {
     expect(find.text('KEEP CURRENT PHOTO'), findsOneWidget);
     await tester.tap(find.text('KEEP CURRENT PHOTO'));
     await tester.pumpAndSettle();
+    // The existing managed photo shows in the mood stage (spec §4.5 review).
+    expect(find.byType(Image), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Silly'),
       80,

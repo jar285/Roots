@@ -78,6 +78,11 @@ class EventDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('CHECK-IN'),
         backgroundColor: AppTokens.background,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () => context.go('/history'),
+        ),
       ),
       body: SafeArea(
         child: event == null

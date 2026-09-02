@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,14 +33,42 @@ PlantState state({
 
 const canvas = Size(390, 600);
 
+double _distanceToSegment(Offset p, Offset a, Offset b) {
+  final ab = b - a;
+  final lengthSquared = ab.distanceSquared;
+  if (lengthSquared == 0) return (p - a).distance;
+  final t = (((p - a).dx * ab.dx + (p - a).dy * ab.dy) / lengthSquared).clamp(
+    0.0,
+    1.0,
+  );
+  return (p - (a + ab * t)).distance;
+}
+
+double distanceToPolyline(Offset p, List<Offset> points) {
+  var best = double.infinity;
+  for (var i = 0; i < points.length - 1; i++) {
+    best = math.min(best, _distanceToSegment(p, points[i], points[i + 1]));
+  }
+  return best;
+}
+
+List<Offset> sampleBranchCurve(PlacedBranch branch, [int samples = 24]) {
+  Offset quadPoint(double t) {
+    final a = Offset.lerp(branch.start, branch.control, t)!;
+    final b = Offset.lerp(branch.control, branch.tip, t)!;
+    return Offset.lerp(a, b, t)!;
+  }
+
+  return [for (var i = 0; i <= samples; i++) quadPoint(i / samples)];
+}
+
 void main() {
   group('PlantLayout.compute is a pure projection of PlantState', () {
     test('identical inputs produce structurally identical layouts', () {
       final a = PlantLayout.compute(state(), canvas);
       final b = PlantLayout.compute(state(), canvas);
 
-      expect(a.trunkBase, b.trunkBase);
-      expect(a.trunkTop, b.trunkTop);
+      expect(a.trunkPath, b.trunkPath);
       expect(a.branches, b.branches);
       expect(a.leaves, b.leaves);
       expect(a.decorations, b.decorations);
@@ -51,21 +81,22 @@ void main() {
       expect(layout.branches, hasLength(3));
       expect(layout.leaves, hasLength(8));
       expect(layout.decorations, hasLength(2));
+      expect(layout.branches.first.sourceEventId, 'b-0');
       expect(layout.leaves.first.sourceEventId, 'l-0');
-      for (final placed in [
-        ...layout.branches,
-        ...layout.leaves,
-        ...layout.decorations,
+      for (final color in [
+        ...layout.branches.map((b) => b.color),
+        ...layout.leaves.map((e) => e.color),
+        ...layout.decorations.map((e) => e.color),
       ]) {
-        expect(placed.color, paletteAccent('v1.silly'));
+        expect(color, paletteAccent('v1.silly'));
       }
     });
 
     test('trunk length is proportional to effective height', () {
+      double lengthOf(PlantLayout l) => l.trunkBase.dy - l.trunkTop.dy;
+
       final short = PlantLayout.compute(state(height: 100), canvas);
       final tall = PlantLayout.compute(state(height: 400), canvas);
-
-      double lengthOf(PlantLayout l) => l.trunkBase.dy - l.trunkTop.dy;
 
       expect(lengthOf(tall), greaterThan(lengthOf(short)));
       expect(
@@ -73,14 +104,37 @@ void main() {
         closeTo(4.0, 0.01),
         reason: 'linear in effectiveHeight',
       );
-      final full = PlantLayout.compute(
-        state(height: GrowthConstants.maxHeight),
-        canvas,
-      );
-      expect(lengthOf(full), lessThan(canvas.height));
     });
 
-    test('all placed elements stay inside the canvas', () {
+    test('the plant is one connected organism: branches sprout from the '
+        'trunk and every leaf/decoration anchors to a stem', () {
+      final layout = PlantLayout.compute(state(leaves: 12), canvas);
+
+      final stems = <List<Offset>>[
+        layout.trunkPath,
+        for (final branch in layout.branches) sampleBranchCurve(branch),
+      ];
+
+      for (final branch in layout.branches) {
+        expect(
+          distanceToPolyline(branch.start, layout.trunkPath),
+          lessThan(2.0),
+          reason: 'branch ${branch.sourceEventId} must sprout from the trunk',
+        );
+      }
+      for (final element in [...layout.leaves, ...layout.decorations]) {
+        final best = stems
+            .map((s) => distanceToPolyline(element.anchor, s))
+            .reduce(math.min);
+        expect(
+          best,
+          lessThan(2.0),
+          reason: '${element.sourceEventId} must anchor to a stem',
+        );
+      }
+    });
+
+    test('all placed geometry stays inside the canvas', () {
       for (final morphology in [
         'v1.vertical',
         'v1.spiral',
@@ -98,18 +152,20 @@ void main() {
           ),
           canvas,
         );
-        for (final placed in [
-          ...layout.branches,
-          ...layout.leaves,
-          ...layout.decorations,
-        ]) {
+        final points = [
+          ...layout.trunkPath,
+          for (final b in layout.branches) ...sampleBranchCurve(b),
+          ...layout.leaves.map((e) => e.center),
+          ...layout.decorations.map((e) => e.center),
+        ];
+        for (final point in points) {
           expect(
-            placed.center.dx,
+            point.dx,
             inInclusiveRange(0, canvas.width),
             reason: '$morphology dx',
           );
           expect(
-            placed.center.dy,
+            point.dy,
             inInclusiveRange(0, canvas.height),
             reason: '$morphology dy',
           );
@@ -162,6 +218,7 @@ void main() {
       );
 
       expect(layout.trunkBase.dy - layout.trunkTop.dy, greaterThan(0));
+      expect(layout.trunkPath.length, greaterThan(2));
       expect(layout.branches, isEmpty);
       expect(layout.leaves, isEmpty);
       expect(layout.decorations, isEmpty);

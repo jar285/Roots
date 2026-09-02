@@ -17,6 +17,7 @@ abstract final class AppTokens {
 
   static const double spacing = 4;
   static const double radius = 12;
+  static const double radiusLarge = 24;
   static const double minTouchTarget = 48;
   static const double contentMaxWidth = 720;
 }
@@ -115,8 +116,10 @@ ThemeData buildAppTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(AppTokens.minTouchTarget + 6),
-        shape: const StadiumBorder(),
-        textStyle: base.textTheme.labelLarge?.copyWith(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: TextStyle(
+          fontFamily: base.textTheme.labelLarge?.fontFamily,
+          fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.4,
         ),
@@ -125,13 +128,15 @@ ThemeData buildAppTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(AppTokens.minTouchTarget + 6),
-        shape: const StadiumBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         foregroundColor: AppTokens.textPrimary,
         side: BorderSide(
           color: AppTokens.textPrimary.withValues(alpha: 0.55),
           width: 1.2,
         ),
-        textStyle: base.textTheme.labelLarge?.copyWith(
+        textStyle: TextStyle(
+          fontFamily: base.textTheme.labelLarge?.fontFamily,
+          fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.4,
         ),
@@ -144,7 +149,8 @@ ThemeData buildAppTheme() {
           AppTokens.minTouchTarget,
         ),
         foregroundColor: AppTokens.textSecondary,
-        textStyle: base.textTheme.labelLarge?.copyWith(
+        textStyle: TextStyle(
+          fontFamily: base.textTheme.labelLarge?.fontFamily,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.4,
           fontSize: 12,
