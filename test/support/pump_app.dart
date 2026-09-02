@@ -6,11 +6,21 @@ import 'package:image/image.dart' as img;
 
 import 'package:roots/app.dart';
 import 'package:roots/contracts/camera_source.dart';
+import 'package:roots/contracts/id_source.dart';
 import 'package:roots/domain/model/check_in_moment.dart';
 import 'package:roots/presentation/app_providers.dart';
 
 import 'fakes.dart';
 import 'in_memory_companion_repository.dart';
+
+/// Distinct from repository-side SequentialIds values, the way production
+/// UUID sources never collide.
+class AppIds implements IdSource {
+  int _next = 0;
+
+  @override
+  String nextId() => 'app-${++_next}';
+}
 
 /// A tiny but valid JPEG so Image.memory can decode previews in tests.
 final Uint8List tinyJpeg = Uint8List.fromList(
@@ -51,7 +61,7 @@ pumpApp(
         mediaStoreProvider.overrideWithValue(media),
         clockProvider.overrideWithValue(theClock),
         cameraSourceProvider.overrideWithValue(theCamera),
-        idSourceProvider.overrideWithValue(SequentialIds()),
+        idSourceProvider.overrideWithValue(AppIds()),
         seedSourceProvider.overrideWithValue(FixedSeedSource(4242)),
       ],
       child: const RootsApp(),

@@ -32,20 +32,84 @@ class SequentialIds implements IdSource {
   String nextId() => 'id-${++_next}';
 }
 
-/// Records saves; file "contents" live in memory keyed by returned name.
+/// In-memory ManagedMediaStore mirroring the staged lifecycle (ADR 0005):
+/// `staged` holds prepared-but-unpromoted photos, `files` the final ones.
+/// Failure injection flags let use-case tests exercise interruption paths.
 class InMemoryManagedMediaStore implements ManagedMediaStore {
-  final Map<String, Uint8List> files = {};
-  final List<String> saveLog = [];
+  final Map<String, Uint8List> staged = {}; // '<eventId>.<tag>' -> bytes
+  final Map<String, Uint8List> files = {}; // '<eventId>.jpg' -> bytes
+  final List<String> log = [];
+
+  bool failOnPromote = false;
+  bool failOnRemove = false;
+  bool failOnRemoveAll = false;
 
   @override
-  Future<String> saveProcessedPhoto({
+  Future<StagedPhoto> prepareCapturedPhoto({
     required String eventId,
+    required int tag,
     required Uint8List bytes,
   }) async {
-    final fileName = '$eventId.jpg';
-    files[fileName] = bytes;
-    saveLog.add(fileName);
-    return fileName;
+    staged['$eventId.$tag'] = bytes;
+    log.add('prepare:$eventId.$tag');
+    return StagedPhoto(
+      eventId: eventId,
+      tag: tag,
+      finalFileName: '$eventId.jpg',
+    );
+  }
+
+  @override
+  Future<void> promoteStagedPhoto({
+    required String eventId,
+    required int tag,
+  }) async {
+    if (failOnPromote) throw Exception('injected promote failure');
+    final bytes = staged.remove('$eventId.$tag');
+    if (bytes == null) throw StateError('nothing staged for $eventId.$tag');
+    files['$eventId.jpg'] = bytes;
+    log.add('promote:$eventId.$tag');
+  }
+
+  @override
+  Future<void> removeStagedPhoto({
+    required String eventId,
+    required int tag,
+  }) async {
+    staged.remove('$eventId.$tag');
+    log.add('removeStaged:$eventId.$tag');
+  }
+
+  @override
+  Future<Uint8List?> readManagedPhoto(String fileName) async => files[fileName];
+
+  @override
+  Future<bool> removeManagedFile(String fileName) async {
+    if (failOnRemove) throw Exception('injected remove failure');
+    log.add('remove:$fileName');
+    return files.remove(fileName) != null;
+  }
+
+  @override
+  Future<void> removeAllManagedMedia() async {
+    if (failOnRemoveAll) throw Exception('injected removeAll failure');
+    log.add('removeAll');
+    staged.clear();
+    files.clear();
+  }
+
+  @override
+  Future<ManagedMediaInventory> inventory() async {
+    return ManagedMediaInventory(
+      finalFileNames: files.keys.toList(),
+      staged: [
+        for (final key in staged.keys)
+          StagedEntry(
+            eventId: key.substring(0, key.lastIndexOf('.')),
+            tag: int.parse(key.substring(key.lastIndexOf('.') + 1)),
+          ),
+      ],
+    );
   }
 }
 

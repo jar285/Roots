@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'application/reconcile_managed_media.dart';
 import 'infrastructure/drift/companion_database.dart';
 import 'infrastructure/drift/drift_companion_repository.dart';
 import 'infrastructure/fs_managed_media_store.dart';
@@ -25,19 +26,20 @@ Future<void> main() async {
 
   // Spec A.2: database file plant_selfie.sqlite.
   final database = CompanionDatabase(driftDatabase(name: 'plant_selfie'));
+  final repository = DriftCompanionRepository(
+    database: database,
+    idSource: const UuidIdSource(),
+  );
+  final mediaStore = FsManagedMediaStore(baseDirectory: mediaDirectory);
+
+  // Repair any interrupted save or deletion before the UI loads (ADR 0005).
+  await ReconcileManagedMedia(repository: repository, mediaStore: mediaStore)();
 
   runApp(
     ProviderScope(
       overrides: [
-        repositoryProvider.overrideWithValue(
-          DriftCompanionRepository(
-            database: database,
-            idSource: const UuidIdSource(),
-          ),
-        ),
-        mediaStoreProvider.overrideWithValue(
-          FsManagedMediaStore(baseDirectory: mediaDirectory),
-        ),
+        repositoryProvider.overrideWithValue(repository),
+        mediaStoreProvider.overrideWithValue(mediaStore),
         clockProvider.overrideWithValue(const SystemClock()),
         // All platforms simulate capture until Sprint 6 (ADR 0004 #3).
         cameraSourceProvider.overrideWith(

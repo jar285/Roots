@@ -150,6 +150,23 @@ class DriftCompanionRepository implements CompanionRepository {
     return deleted > 0;
   }
 
+  @override
+  Future<void> startOver({required String nextInstallationId}) {
+    // One transaction: every event goes and the identity is replaced, so a
+    // crash can never leave a half-reset companion (spec §4.6).
+    return database.transaction(() async {
+      await database.delete(database.growthEvents).go();
+      await database
+          .into(database.appMetadata)
+          .insertOnConflictUpdate(
+            AppMetadataCompanion.insert(
+              key: _installationKey,
+              value: nextInstallationId,
+            ),
+          );
+    });
+  }
+
   Future<GrowthEvent> _readById(String id) async {
     final row = await (database.select(
       database.growthEvents,

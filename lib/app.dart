@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'presentation/check_in/capture_screen.dart';
 import 'presentation/check_in/confirmation_screen.dart';
 import 'presentation/check_in/mood_screen.dart';
+import 'presentation/history/event_detail_screen.dart';
+import 'presentation/history/history_screen.dart';
 import 'presentation/home/home_screen.dart';
+import 'presentation/settings/settings_screen.dart';
 import 'presentation/theme/app_theme.dart';
 
 /// The app shell: theme + named routes. Each instance owns its router so
@@ -29,6 +32,13 @@ class _RootsAppState extends State<RootsApp> {
         path: '/check-in/confirm',
         builder: (_, _) => const ConfirmationScreen(),
       ),
+      GoRoute(path: '/history', builder: (_, _) => const HistoryScreen()),
+      GoRoute(
+        path: '/history/:id',
+        builder: (_, state) =>
+            EventDetailScreen(eventId: state.pathParameters['id']!),
+      ),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     ],
   );
 

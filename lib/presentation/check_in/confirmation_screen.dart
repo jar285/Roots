@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,17 +23,22 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
 
   Future<void> _save() async {
     final draft = ref.read(checkInFlowProvider);
-    final photo = draft.photo;
     final mood = draft.mood;
-    if (photo == null || mood == null) return;
+    if (mood == null) return;
+    if (draft.photo == null && !draft.keepExistingPhoto) return;
 
     setState(() {
       _saving = true;
       _saveFailed = false;
     });
     try {
-      await ref.read(saveDailyCheckInProvider)(mood: mood, photo: photo.bytes);
+      // Null photo = keep the existing one on a same-day review (spec §4.5).
+      await ref.read(saveDailyCheckInProvider)(
+        mood: mood,
+        photo: draft.keepExistingPhoto ? null : draft.photo!.bytes,
+      );
       ref.invalidate(companionProvider);
+      ref.invalidate(historyProvider);
       if (mounted) context.go('/');
     } catch (_) {
       if (mounted) {
@@ -74,23 +81,7 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                     style: textTheme.titleLarge?.copyWith(letterSpacing: 2),
                   ),
                   const SizedBox(height: AppTokens.spacing * 4),
-                  Expanded(
-                    child: photo == null
-                        ? const SizedBox.shrink()
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radius,
-                            ),
-                            child: Image.memory(
-                              photo.bytes,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (_, _, _) => const Center(
-                                child: Icon(Icons.image_not_supported),
-                              ),
-                            ),
-                          ),
-                  ),
+                  Expanded(child: _PhotoPreview(draft: draft)),
                   const SizedBox(height: AppTokens.spacing * 4),
                   if (mood != null)
                     Text(
@@ -131,7 +122,10 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                   ],
                   const SizedBox(height: AppTokens.spacing * 4),
                   FilledButton(
-                    onPressed: (_saving || photo == null || mood == null)
+                    onPressed:
+                        (_saving ||
+                            mood == null ||
+                            (photo == null && !draft.keepExistingPhoto))
                         ? null
                         : _save,
                     child: _saving
@@ -161,6 +155,51 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The new photo, or — when keeping the existing one — the stored photo.
+class _PhotoPreview extends ConsumerWidget {
+  const _PhotoPreview({required this.draft});
+
+  final CheckInDraft draft;
+
+  Widget _image(Uint8List bytes) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTokens.radius),
+      child: Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        gaplessPlayback: true,
+        errorBuilder: (_, _, _) =>
+            const Center(child: Icon(Icons.image_not_supported)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photo = draft.photo;
+    if (photo != null) return _image(photo.bytes);
+    if (!draft.keepExistingPhoto) return const SizedBox.shrink();
+
+    final todayEvent = switch (ref.watch(companionProvider)) {
+      AsyncData(:final value) => value.todayEvent,
+      _ => null,
+    };
+    if (todayEvent == null) return const SizedBox.shrink();
+
+    return FutureBuilder(
+      future: ref
+          .watch(mediaStoreProvider)
+          .readManagedPhoto(todayEvent.selfieFileName),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null) return const SizedBox.shrink();
+        return _image(bytes);
+      },
     );
   }
 }

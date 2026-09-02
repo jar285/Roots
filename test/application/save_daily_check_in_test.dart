@@ -59,12 +59,24 @@ void main() {
     );
   });
 
-  test('names the managed photo after the event id (spec A.9)', () async {
+  test('stages, commits, then promotes the photo under the event id '
+      '(spec §5.4, A.9)', () async {
     final saved = await saveDailyCheckIn(mood: Mood.calm, photo: photoBytes);
 
     expect(saved.selfieFileName, '${saved.id}.jpg');
     expect(mediaStore.files.keys, ['${saved.id}.jpg']);
     expect(mediaStore.files.values.single, photoBytes);
+    expect(
+      mediaStore.staged,
+      isEmpty,
+      reason: 'a completed save leaves nothing staged',
+    );
+    // Staged under the confirmation reading's tag, promoted after commit.
+    final tag = saved.updatedAtUtc.millisecondsSinceEpoch;
+    expect(mediaStore.log, [
+      'prepare:${saved.id}.$tag',
+      'promote:${saved.id}.$tag',
+    ]);
   });
 
   test('a second save on the same local date updates the same event', () async {
@@ -74,16 +86,42 @@ void main() {
       utcInstant: DateTime.utc(2026, 9, 1, 23, 30),
       offsetMinutes: -240, // still 2026-09-01 locally (19:30)
     );
-    final second = await saveDailyCheckIn(
-      mood: Mood.silly,
-      photo: Uint8List.fromList([9, 9, 9]),
-    );
+    final replacement = Uint8List.fromList([9, 9, 9]);
+    final second = await saveDailyCheckIn(mood: Mood.silly, photo: replacement);
 
     expect(second.id, first.id);
     expect(second.mood, Mood.silly);
     expect(await repository.allEvents(), hasLength(1));
     // Replacement photo reuses the same managed name (same event id).
-    expect(mediaStore.saveLog, ['${first.id}.jpg', '${first.id}.jpg']);
+    expect(mediaStore.files.keys, ['${first.id}.jpg']);
+    expect(mediaStore.files.values.single, replacement);
+    expect(mediaStore.staged, isEmpty);
+  });
+
+  test('a null photo on a same-day review keeps the existing photo '
+      '(spec §4.5)', () async {
+    final first = await saveDailyCheckIn(mood: Mood.calm, photo: photoBytes);
+    final logBefore = List.of(mediaStore.log);
+
+    final second = await saveDailyCheckIn(mood: Mood.happy, photo: null);
+
+    expect(second.id, first.id);
+    expect(second.mood, Mood.happy);
+    expect(second.selfieFileName, first.selfieFileName);
+    expect(
+      mediaStore.files.values.single,
+      photoBytes,
+      reason: 'no media work happens when the photo is kept',
+    );
+    expect(mediaStore.log, logBefore);
+  });
+
+  test('a null photo with no existing event is a programming error', () async {
+    await expectLater(
+      saveDailyCheckIn(mood: Mood.calm, photo: null),
+      throwsStateError,
+    );
+    expect(await repository.allEvents(), isEmpty);
   });
 
   test('a new local day creates a new event', () async {

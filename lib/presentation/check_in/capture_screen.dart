@@ -39,6 +39,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   @override
   Widget build(BuildContext context) {
     final photo = _photo;
+    final editingToday = switch (ref.watch(companionProvider)) {
+      AsyncData(:final value) => value.hasCheckedInToday,
+      _ => false,
+    };
 
     return Scaffold(
       body: SafeArea(
@@ -96,6 +100,18 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                           },
                     child: const Text('USE THIS PHOTO'),
                   ),
+                  if (editingToday) ...[
+                    const SizedBox(height: AppTokens.spacing * 2),
+                    TextButton(
+                      onPressed: () {
+                        ref
+                            .read(checkInFlowProvider.notifier)
+                            .keepExistingPhoto();
+                        context.go('/check-in/mood');
+                      },
+                      child: const Text('KEEP CURRENT PHOTO'),
+                    ),
+                  ],
                   const SizedBox(height: AppTokens.spacing * 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

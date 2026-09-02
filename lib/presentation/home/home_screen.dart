@@ -52,6 +52,19 @@ class _CompanionBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => context.go('/history'),
+              child: const Text('HISTORY'),
+            ),
+            TextButton(
+              onPressed: () => context.go('/settings'),
+              child: const Text('SETTINGS'),
+            ),
+          ],
+        ),
         Expanded(child: PlantView(plant: companion.plant)),
         const SizedBox(height: AppTokens.spacing * 4),
         if (isEmpty) ...[

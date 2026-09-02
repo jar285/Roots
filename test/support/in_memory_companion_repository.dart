@@ -112,4 +112,10 @@ class InMemoryCompanionRepository implements CompanionRepository {
     _eventsById.remove(id);
     return true;
   }
+
+  @override
+  Future<void> startOver({required String nextInstallationId}) async {
+    _eventsById.clear();
+    _installationId = nextInstallationId;
+  }
 }

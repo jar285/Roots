@@ -84,4 +84,10 @@ abstract interface class CompanionRepository {
   /// Deletes one event by id. Returns false when no such event exists.
   /// The date becomes available for a fresh check-in (ADR 0003 #7).
   Future<bool> deleteEvent(String id);
+
+  /// Start Over's storage half (spec §4.6): in one transaction, removes
+  /// every event and replaces the installation identity with
+  /// [nextInstallationId], so the new companion is not linked to the reset
+  /// history. Media cleanup is the media store's job.
+  Future<void> startOver({required String nextInstallationId});
 }

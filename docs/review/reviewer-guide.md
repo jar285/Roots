@@ -3,7 +3,7 @@
 This guide grows sprint by sprint toward the spec's thirty-minute review path
 (design spec §13). It never claims a step that is not yet possible.
 
-## Current state (after Sprint 3)
+## Current state (after Sprint 4)
 
 1. Read spec §1–3 for the product contract:
    [2026-08-21-plant-selfie-design.md](../superpowers/specs/2026-08-21-plant-selfie-design.md).
@@ -33,11 +33,15 @@ This guide grows sprint by sprint toward the spec's thirty-minute review path
 5. `flutter run -d macos` launches the real app: empty Home → TAKE TODAY'S SELFIE
    (simulated capture) → mood → confirmation → the grown plant; quit and relaunch to
    watch the plant reconstruct from stored events. Same-day re-entry shows REVIEW
-   TODAY'S CHECK-IN and replaces today's event instead of adding growth. The plant
-   rendering is a Sprint 3 placeholder; the real painter arrives in Sprint 5.
+   TODAY'S CHECK-IN and replaces today's event instead of adding growth — with a KEEP
+   CURRENT PHOTO option. HISTORY lists check-ins newest first and opens each day's
+   detail, where deletion confirms with the date and removes both the entry and its
+   plant contribution. SETTINGS holds Start Over in a separated destructive section;
+   confirming it erases everything and rotates the installation identity (spec §13
+   steps 6–8 are now walkable). The plant rendering is a placeholder; the real painter
+   arrives in Sprint 5.
 
 ## Not yet reviewable
-- History, event detail, deletion, Start Over, media reconciliation — Sprint 4.
 - Painter, historical styling, accessibility, goldens — Sprint 5.
 - Real mobile camera and permissions — Sprint 6.
 - Patrol journey and release evidence — Sprint 7.

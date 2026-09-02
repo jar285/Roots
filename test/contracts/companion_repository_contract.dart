@@ -251,4 +251,54 @@ void runCompanionRepositoryContractTests({
       expect(await repository.allEvents(), hasLength(1));
     });
   });
+
+  group('startOver (spec §4.6)', () {
+    test(
+      'removes every event and replaces the installation identity',
+      () async {
+        final oldInstallation = await repository.installationId();
+        await repository.upsertDailyCheckIn(draft(localDate: '2026-09-01'));
+        await repository.upsertDailyCheckIn(
+          draft(
+            localDate: '2026-09-02',
+            checkedInAtUtc: DateTime.utc(2026, 9, 2, 14, 5),
+          ),
+        );
+
+        await repository.startOver(nextInstallationId: 'fresh-install');
+
+        expect(await repository.allEvents(), isEmpty);
+        expect(await repository.eventForDate('2026-09-01'), isNull);
+        expect(await repository.installationId(), 'fresh-install');
+        expect(await repository.installationId(), isNot(oldInstallation));
+      },
+    );
+
+    test(
+      'the fresh companion accepts a check-in for a previously used date',
+      () async {
+        final original = await repository.upsertDailyCheckIn(
+          draft(localDate: '2026-09-01'),
+        );
+
+        await repository.startOver(nextInstallationId: 'fresh-install');
+        final again = await repository.upsertDailyCheckIn(
+          draft(localDate: '2026-09-01'),
+        );
+
+        expect(again.id, isNot(original.id));
+        expect(again.installationId, 'fresh-install');
+        expect(await repository.allEvents(), hasLength(1));
+      },
+    );
+
+    test('start over on an empty companion still rotates identity', () async {
+      final old = await repository.installationId();
+
+      await repository.startOver(nextInstallationId: 'fresh-install');
+
+      expect(await repository.installationId(), isNot(old));
+      expect(await repository.allEvents(), isEmpty);
+    });
+  });
 }

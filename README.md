@@ -55,7 +55,7 @@ ships with an ADR and a QA report that separates verified from not verified.
 | 1 | Deterministic domain: growth rules, seeded RNG, versioned projection | ✅ [report](docs/reports/sprint-1.md) |
 | 2 | Canonical storage: Drift schema, daily uniqueness, repository contract | ✅ [report](docs/reports/sprint-2.md) |
 | 3 | Simulated vertical slice on macOS (Home → confirm → grown plant) | ✅ [report](docs/reports/sprint-3.md) |
-| 4 | Same-day correction, deletion, Start Over, media reconciliation | 🔜 |
+| 4 | Same-day correction, deletion, Start Over, media reconciliation | ✅ [report](docs/reports/sprint-4.md) |
 | 5 | Plant painter, historical styling, accessibility, goldens | 🔜 |
 | 6 | Real mobile camera & permissions | 🔜 |
 | 7 | Release journey (Patrol, clean-checkout proof) | 🔜 |
@@ -83,7 +83,7 @@ Everyday commands:
 flutter pub get
 dart format --output=none --set-exit-if-changed lib test integration_test
 flutter analyze
-flutter test                            # 139 tests: domain, storage, app
+flutter test                            # 174 tests: domain, storage, media, app
 flutter test integration_test -d macos  # deterministic reviewer journey (Xcode)
 flutter run -d macos                    # the app itself (Xcode)
 ```
