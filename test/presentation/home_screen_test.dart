@@ -67,7 +67,15 @@ void main() {
 
     expect(find.text('REVIEW TODAY\'S CHECK-IN'), findsOneWidget);
     expect(find.text('TAKE TODAY\'S SELFIE'), findsNothing);
-    expect(find.text('Today\'s check-in is complete.'), findsOneWidget);
+    // Design 3 completed state (ADR 0006): delta-derived headline, calm
+    // status line, and the no-pressure support copy.
+    // Fixture: afternoon + calm -> 5 leaves (spec A.3).
+    expect(find.text('5 new leaves are part of it now.'), findsOneWidget);
+    expect(find.text('Today · Calm · saved'), findsOneWidget);
+    expect(
+      find.text('Come back tomorrow, or don\'t. It keeps.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the plant exposes one concise semantics summary', (

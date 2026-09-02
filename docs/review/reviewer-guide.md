@@ -3,7 +3,7 @@
 This guide grows sprint by sprint toward the spec's thirty-minute review path
 (design spec §13). It never claims a step that is not yet possible.
 
-## Current state (after Sprint 4)
+## Current state (after Sprint 5)
 
 1. Read spec §1–3 for the product contract:
    [2026-08-21-plant-selfie-design.md](../superpowers/specs/2026-08-21-plant-selfie-design.md).
@@ -38,11 +38,13 @@ This guide grows sprint by sprint toward the spec's thirty-minute review path
    detail, where deletion confirms with the date and removes both the entry and its
    plant contribution. SETTINGS holds Start Over in a separated destructive section;
    confirming it erases everything and rotates the installation identity (spec §13
-   steps 6–8 are now walkable). The plant rendering is a placeholder; the real painter
-   arrives in Sprint 5.
+   steps 6–8 are now walkable). The plant renders in the Greenhouse-arch direction
+   (ADR 0006): organic painter with event-colored history, mood glyphs, growth reveal
+   (skipped under reduced motion), and the mature flourish.
+6. Visual baselines live in `test/presentation/goldens/` — including the plant after
+   30/90/180/365 simulated days, the maturity pacing gate's review artifacts.
 
 ## Not yet reviewable
-- Painter, historical styling, accessibility, goldens — Sprint 5.
 - Real mobile camera and permissions — Sprint 6.
 - Patrol journey and release evidence — Sprint 7.
 

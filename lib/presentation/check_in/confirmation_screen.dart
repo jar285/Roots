@@ -39,6 +39,7 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
       );
       ref.invalidate(companionProvider);
       ref.invalidate(historyProvider);
+      ref.read(justSavedProvider.notifier).mark();
       if (mounted) context.go('/');
     } catch (_) {
       if (mounted) {
@@ -129,10 +130,13 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                         ? null
                         : _save,
                     child: _saving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        ? Semantics(
+                            label: 'Saving',
+                            child: const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           )
                         : Text(
                             _saveFailed

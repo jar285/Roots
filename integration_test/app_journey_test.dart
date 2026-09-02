@@ -95,7 +95,12 @@ void main() {
     await tester.tap(find.text('ADD TODAY\'S GROWTH'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Today\'s check-in is complete.'), findsOneWidget);
+    // 09:30 morning + Happy -> 4 leaves (spec A.3, delta-derived headline).
+    expect(find.text('4 new leaves are part of it now.'), findsOneWidget);
+    expect(
+      find.text('Come back tomorrow, or don\'t. It keeps.'),
+      findsOneWidget,
+    );
     expect(find.text('REVIEW TODAY\'S CHECK-IN'), findsOneWidget);
     expect(
       find.bySemanticsLabel(RegExp(r'Your plant: 1 check-in')),
@@ -112,7 +117,7 @@ void main() {
     final secondRun = await launchApp();
     addTearDown(secondRun.close);
 
-    expect(find.text('Today\'s check-in is complete.'), findsOneWidget);
+    expect(find.text('4 new leaves are part of it now.'), findsOneWidget);
     expect(
       find.bySemanticsLabel(RegExp(r'Your plant: 1 check-in')),
       findsOneWidget,

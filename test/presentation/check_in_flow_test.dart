@@ -11,6 +11,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> chooseMood(WidgetTester tester, String label) async {
+    final finder = find.text(label);
+    await tester.scrollUntilVisible(
+      finder,
+      80,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.tap(finder);
+    await tester.pump();
+  }
+
   testWidgets('capture offers use, retake, and cancel', (tester) async {
     await pumpApp(tester);
     await startCheckIn(tester);
@@ -48,8 +60,7 @@ void main() {
     );
     expect(continueButton.onPressed, isNull);
 
-    await tester.tap(find.text('Happy'));
-    await tester.pump();
+    await chooseMood(tester, 'Happy');
 
     final enabled = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'CONTINUE'),
@@ -64,8 +75,7 @@ void main() {
     await startCheckIn(tester);
     await tester.tap(find.text('USE THIS PHOTO'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Calm'));
-    await tester.pump();
+    await chooseMood(tester, 'Calm');
     await tester.tap(find.text('CONTINUE'));
     await tester.pumpAndSettle();
 
@@ -81,14 +91,15 @@ void main() {
     await startCheckIn(tester);
     await tester.tap(find.text('USE THIS PHOTO'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Happy'));
-    await tester.pump();
+    await chooseMood(tester, 'Happy');
     await tester.tap(find.text('CONTINUE'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('ADD TODAY\'S GROWTH'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Today\'s check-in is complete.'), findsOneWidget);
+    // pumpApp clock: afternoon; Happy -> 6 leaves (spec A.3 + ADR 0006 #7).
+    expect(find.text('6 new leaves are part of it now.'), findsOneWidget);
+    expect(find.text('Today · Happy · saved'), findsOneWidget);
     expect(find.text('REVIEW TODAY\'S CHECK-IN'), findsOneWidget);
     expect(
       find.bySemanticsLabel(RegExp(r'Your plant: 1 check-in')),
@@ -99,6 +110,37 @@ void main() {
     expect(events, hasLength(1));
     expect(handles.mediaStore.files.keys, ['${events.single.id}.jpg']);
   });
+
+  testWidgets(
+    'reduced motion shows the final grown plant with no pending animation '
+    '(spec §8.8)',
+    (tester) async {
+      tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+
+      await pumpApp(tester);
+      await startCheckIn(tester);
+      await tester.tap(find.text('USE THIS PHOTO'));
+      await tester.pumpAndSettle();
+      await chooseMood(tester, 'Happy');
+      await tester.tap(find.text('CONTINUE'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ADD TODAY\'S GROWTH'));
+      // The journey completes and settles under reduced motion; the direct
+      // no-reveal-frames proof lives in plant_view_test.dart (the route
+      // transition itself is platform-default motion).
+      await tester.pumpAndSettle();
+
+      expect(find.text('6 new leaves are part of it now.'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp(r'Your plant: 1 check-in')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('reviewing today explains replacement and updates the same event '
       '(spec §6.4)', (tester) async {
@@ -115,8 +157,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('USE THIS PHOTO'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Silly'));
-    await tester.pump();
+    await chooseMood(tester, 'Silly');
     await tester.tap(find.text('CONTINUE'));
     await tester.pumpAndSettle();
 

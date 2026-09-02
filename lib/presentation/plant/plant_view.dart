@@ -1,18 +1,58 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../domain/model/plant_state.dart';
 import '../../domain/rules/growth_constants.dart';
 import '../theme/app_theme.dart';
+import 'plant_layout.dart';
 
-/// Sprint 3 placeholder rendering: deterministic, immutable-state-in,
-/// pixels-out, with one concise semantics summary. The full event-styled
-/// painter, motion, and goldens are Sprint 5's outcome (ADR 0004 #6).
-class PlantView extends StatelessWidget {
-  const PlantView({super.key, required this.plant});
+/// The plant on its greenhouse-arch stage (ADR 0006 #1): a rounded arch with
+/// a soft glow frames the deterministic organic plant. One concise semantics
+/// summary speaks for the whole canvas.
+///
+/// [animate] runs the growth reveal (≤ 800 ms ease-out, spec motion rules);
+/// reduced motion pins the reveal to the final state instantly. Animation
+/// only reveals already-computed geometry — it never alters it (spec A.10).
+class PlantView extends StatefulWidget {
+  const PlantView({super.key, required this.plant, this.animate = false});
 
   final PlantState plant;
+  final bool animate;
+
+  @override
+  State<PlantView> createState() => _PlantViewState();
+}
+
+class _PlantViewState extends State<PlantView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _reveal = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 600),
+    value: 1.0,
+  );
+
+  bool _revealDecided = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_revealDecided) return;
+    _revealDecided = true;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (widget.animate && !reduceMotion) {
+      _reveal.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _reveal.dispose();
+    super.dispose();
+  }
 
   String get _summary {
+    final plant = widget.plant;
     final checkIns = plant.eventCount == 1
         ? '1 check-in'
         : '${plant.eventCount} check-ins';
@@ -26,80 +66,208 @@ class PlantView extends StatelessWidget {
     return Semantics(
       label: _summary,
       child: ExcludeSemantics(
-        child: CustomPaint(
-          painter: _PlaceholderPlantPainter(plant: plant),
-          size: Size.infinite,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final archRadius = constraints.maxWidth / 2;
+            return Container(
+              decoration: BoxDecoration(
+                color: AppTokens.surface,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(archRadius),
+                  bottom: const Radius.circular(AppTokens.radius),
+                ),
+                gradient: RadialGradient(
+                  center: const Alignment(0, 0.45),
+                  radius: 0.95,
+                  stops: const [0.0, 0.65],
+                  colors: [
+                    AppTokens.plantGreen.withValues(alpha: 0.12),
+                    AppTokens.surface,
+                  ],
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: AnimatedBuilder(
+                animation: _reveal,
+                builder: (context, _) => CustomPaint(
+                  painter: OrganicPlantPainter(
+                    plant: widget.plant,
+                    progress: Curves.easeOut.transform(_reveal.value),
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _PlaceholderPlantPainter extends CustomPainter {
-  _PlaceholderPlantPainter({required this.plant});
+/// Thin renderer of [PlantLayout] in the spec A.10 drawing order:
+/// ground and pot, trunk, branches, leaves, decorations, mature flourish.
+/// Same PlantState and viewport ⇒ same final frame.
+class OrganicPlantPainter extends CustomPainter {
+  OrganicPlantPainter({required this.plant, this.progress = 1.0});
 
   final PlantState plant;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centerX = size.width / 2;
-    final ground = size.height - 24;
+    final layout = PlantLayout.compute(plant, size);
 
-    // Pot.
-    final potPaint = Paint()..color = AppTokens.surfaceRaised;
+    _paintGroundAndPot(canvas, size, layout);
+    _paintTrunk(canvas, layout);
+    _paintElements(canvas, layout.branches, trunkX: layout.trunkBase.dx);
+    _paintElements(canvas, layout.leaves, trunkX: layout.trunkBase.dx);
+    _paintElements(canvas, layout.decorations, trunkX: layout.trunkBase.dx);
+    if (layout.mature && progress >= 1.0) {
+      _paintMatureFlourish(canvas, layout);
+    }
+  }
+
+  bool _revealed(int index, int total) {
+    if (total == 0) return false;
+    return (index + 1) / total <= progress + 1e-9;
+  }
+
+  void _paintGroundAndPot(Canvas canvas, Size size, PlantLayout layout) {
+    final base = layout.trunkBase;
+    canvas.drawLine(
+      Offset(base.dx - 70, base.dy + 14),
+      Offset(base.dx + 70, base.dy + 14),
+      Paint()
+        ..color = AppTokens.surfaceRaised
+        ..strokeWidth = 2,
+    );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
-          center: Offset(centerX, ground - 14),
-          width: 88,
-          height: 28,
+          center: Offset(base.dx, base.dy + 4),
+          width: 92,
+          height: 22,
         ),
         const Radius.circular(8),
       ),
-      potPaint,
+      Paint()..color = AppTokens.surfaceRaised,
     );
+  }
 
-    // Trunk scaled by effective height.
-    final maxTrunk = size.height * 0.7;
-    final trunkHeight =
-        maxTrunk * (plant.effectiveHeight / GrowthConstants.maxHeight);
-    final top = ground - 28 - trunkHeight;
-    final trunkPaint = Paint()
-      ..color = AppTokens.plantGreen
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(centerX, ground - 28),
-      Offset(centerX, top),
-      trunkPaint,
+  void _paintTrunk(Canvas canvas, PlantLayout layout) {
+    final base = layout.trunkBase;
+    final fullLength = base.dy - layout.trunkTop.dy;
+    final revealedTop = Offset(base.dx, base.dy - fullLength * progress);
+
+    // A gentle deterministic S-curve keeps the stem organic.
+    final bend = math.min(14.0, fullLength * 0.08);
+    final path = Path()
+      ..moveTo(base.dx, base.dy)
+      ..cubicTo(
+        base.dx - bend,
+        base.dy - (base.dy - revealedTop.dy) * 0.35,
+        base.dx + bend,
+        base.dy - (base.dy - revealedTop.dy) * 0.7,
+        revealedTop.dx,
+        revealedTop.dy,
+      );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = AppTokens.plantGreen
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = layout.trunkThickness
+        ..strokeCap = StrokeCap.round,
     );
+  }
 
-    // Elements as deterministic marks alternating around the trunk, each in
-    // its event's palette accent — history keeps its colors (spec A.6).
-    void drawMarks(
-      List<PlantElement> elements, {
-      required double radius,
-      required double spacing,
-      required double offset,
-    }) {
-      for (var i = 0; i < elements.length; i++) {
-        final side = i.isEven ? 1 : -1;
-        final y = ground - 40 - (i * spacing) % (trunkHeight + 1);
-        final x = centerX + side * offset;
-        canvas.drawCircle(
-          Offset(x, y),
-          radius,
-          Paint()..color = paletteAccent(elements[i].paletteId),
-        );
+  void _paintElements(
+    Canvas canvas,
+    List<PlacedElement> elements, {
+    required double trunkX,
+  }) {
+    for (var i = 0; i < elements.length; i++) {
+      if (!_revealed(i, elements.length)) continue;
+      final element = elements[i];
+      switch (element.kind) {
+        case PlantElementKind.branch:
+          _paintBranch(canvas, element, trunkX);
+        case PlantElementKind.leaf:
+          _paintLeaf(canvas, element);
+        case PlantElementKind.decoration:
+          canvas.drawCircle(
+            element.center,
+            element.size,
+            Paint()..color = element.color,
+          );
       }
     }
+  }
 
-    drawMarks(plant.branches, radius: 5, spacing: 26, offset: 26);
-    drawMarks(plant.leaves, radius: 3, spacing: 11, offset: 14);
-    drawMarks(plant.decorations, radius: 4, spacing: 31, offset: 38);
+  void _paintBranch(Canvas canvas, PlacedElement element, double trunkX) {
+    // Branches grow out of the trunk toward their placed tip, so they read
+    // as part of one plant rather than floating marks.
+    final start = Offset(trunkX, element.center.dy + element.size * 0.35);
+    final paint = Paint()
+      ..color = element.color.withValues(alpha: 0.9)
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(
+      Path()
+        ..moveTo(start.dx, start.dy)
+        ..quadraticBezierTo(
+          (start.dx + element.center.dx) / 2,
+          element.center.dy + element.size * 0.15,
+          element.center.dx,
+          element.center.dy,
+        ),
+      paint,
+    );
+    canvas.drawCircle(element.center, 3.2, Paint()..color = element.color);
+  }
+
+  void _paintLeaf(Canvas canvas, PlacedElement element) {
+    canvas.save();
+    canvas.translate(element.center.dx, element.center.dy);
+    canvas.rotate(element.rotation);
+    final r = element.size;
+    canvas.drawPath(
+      Path()..addRRect(
+        RRect.fromRectAndCorners(
+          Rect.fromCenter(center: Offset.zero, width: r * 2, height: r * 1.2),
+          topRight: Radius.circular(r * 2),
+          bottomLeft: Radius.circular(r * 2),
+          topLeft: const Radius.circular(2),
+          bottomRight: const Radius.circular(2),
+        ),
+      ),
+      Paint()..color = element.color,
+    );
+    canvas.restore();
+  }
+
+  void _paintMatureFlourish(Canvas canvas, PlantLayout layout) {
+    canvas.drawCircle(
+      layout.trunkTop,
+      26,
+      Paint()
+        ..color = AppTokens.warning.withValues(alpha: 0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+    canvas.drawCircle(
+      layout.trunkTop,
+      34,
+      Paint()
+        ..color = AppTokens.warning.withValues(alpha: 0.12)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   @override
-  bool shouldRepaint(_PlaceholderPlantPainter oldDelegate) =>
-      oldDelegate.plant != plant;
+  bool shouldRepaint(OrganicPlantPainter oldDelegate) =>
+      oldDelegate.plant != plant || oldDelegate.progress != progress;
 }

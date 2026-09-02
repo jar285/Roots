@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/model/mood.dart';
 import '../theme/app_theme.dart';
+import '../theme/mood_glyph.dart';
 import 'check_in_flow.dart';
 
 /// Mood answers: how do I describe how I feel? Always self-report —
@@ -36,7 +37,11 @@ class MoodScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppTokens.spacing * 4),
                   Expanded(
-                    child: ListView(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: AppTokens.spacing * 3,
+                      crossAxisSpacing: AppTokens.spacing * 3,
+                      childAspectRatio: 1.7,
                       children: [
                         for (final mood in Mood.values)
                           _MoodOption(
@@ -86,53 +91,44 @@ class _MoodOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
+    // Announces label, supporting phrase, and selection (UI/UX philosophy);
+    // the card shows glyph + label (Design 3 grid, ADR 0006 #4).
     return Semantics(
+      label: '${mood.label}. ${mood.supportingCopy}.',
       selected: selected,
       button: true,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppTokens.spacing * 2),
-        child: Material(
-          color: selected ? AppTokens.surfaceRaised : AppTokens.surface,
+      child: Material(
+        color: selected ? AppTokens.surfaceRaised : AppTokens.surface,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppTokens.radius),
-            onTap: onTap,
-            child: Container(
-              constraints: const BoxConstraints(
-                minHeight: AppTokens.minTouchTarget + 8,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spacing * 4,
-                vertical: AppTokens.spacing * 3,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: mood.accent,
-                      shape: BoxShape.circle,
+          side: selected
+              ? const BorderSide(color: AppTokens.plantGreen, width: 2)
+              : BorderSide.none,
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTokens.radius),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTokens.spacing * 4),
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    MoodGlyph(mood: mood, size: 18),
+                    const Spacer(),
+                    ExcludeSemantics(
+                      child: Text(mood.label, style: textTheme.bodyLarge),
                     ),
+                  ],
+                ),
+                if (selected)
+                  const Align(
+                    alignment: Alignment.topRight,
+                    child: Icon(Icons.check, color: AppTokens.plantGreen),
                   ),
-                  const SizedBox(width: AppTokens.spacing * 4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(mood.label, style: textTheme.bodyLarge),
-                        Text(
-                          mood.supportingCopy,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppTokens.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (selected) const Icon(Icons.check, color: AppTokens.focus),
-                ],
-              ),
+              ],
             ),
           ),
         ),

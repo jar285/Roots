@@ -83,6 +83,20 @@ final companionProvider =
       CompanionNotifier.new,
     );
 
+/// True for exactly one Home build after a successful save, so the growth
+/// reveal animates only when growth actually happened (motion connects the
+/// action to its result — Norman lens, ADR 0007 #4).
+class JustSaved extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void mark() => state = true;
+
+  void consume() => state = false;
+}
+
+final justSavedProvider = NotifierProvider<JustSaved, bool>(JustSaved.new);
+
 /// History is the personal archive, newest first (spec §6.5).
 final historyProvider = FutureProvider<List<GrowthEvent>>((ref) async {
   final events = await ref.watch(repositoryProvider).allEvents();

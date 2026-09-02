@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/model/growth_event.dart';
 import '../app_providers.dart';
 import '../theme/app_theme.dart';
+import '../theme/mood_glyph.dart';
 
 /// History answers: what have I recorded? A personal archive, newest first —
 /// never a metric dashboard (spec §6.5).
@@ -80,45 +81,52 @@ class _HistoryRow extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTokens.radius),
           onTap: () => context.go('/history/${event.id}'),
-          child: Padding(
-            padding: const EdgeInsets.all(AppTokens.spacing * 3),
-            child: Row(
-              children: [
-                EventThumbnail(event: event, size: 56),
-                const SizedBox(width: AppTokens.spacing * 4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            children: [
+              // Mood-accent edge strip (Design 3 card, ADR 0006 #5).
+              Container(
+                width: 4,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: event.mood.accent,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(AppTokens.radius),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTokens.spacing * 3),
+                  child: Row(
                     children: [
-                      Text(
-                        event.localDate,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: event.mood.accent,
-                              shape: BoxShape.circle,
+                      EventThumbnail(event: event, size: 56),
+                      const SizedBox(width: AppTokens.spacing * 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              event.localDate,
+                              style: Theme.of(context).textTheme.bodyLarge,
                             ),
-                          ),
-                          const SizedBox(width: AppTokens.spacing * 2),
-                          Text(
-                            '${event.mood.label} · '
-                            '${event.timeCategory.name}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppTokens.textSecondary),
-                          ),
-                        ],
+                            MoodTag(
+                              mood: event.mood,
+                              text:
+                                  '${event.mood.label} · '
+                                  '${event.timeCategory.name}',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppTokens.textSecondary,
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppTokens.textSecondary),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

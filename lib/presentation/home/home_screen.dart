@@ -7,6 +7,8 @@ import '../app_providers.dart';
 import '../check_in/check_in_flow.dart';
 import '../plant/plant_view.dart';
 import '../theme/app_theme.dart';
+import '../theme/mood_glyph.dart';
+import 'growth_headline.dart';
 
 /// Home answers: what has my plant become, and what can I do today?
 class HomeScreen extends ConsumerWidget {
@@ -47,7 +49,14 @@ class _CompanionBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isEmpty = companion.plant.eventCount == 0;
     final completedToday = companion.hasCheckedInToday;
+    final todayEvent = companion.todayEvent;
     final textTheme = Theme.of(context).textTheme;
+
+    // Consume the one-shot reveal flag (reset outside build).
+    final justSaved = ref.read(justSavedProvider);
+    if (justSaved) {
+      Future.microtask(() => ref.read(justSavedProvider.notifier).consume());
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,7 +74,9 @@ class _CompanionBody extends ConsumerWidget {
             ),
           ],
         ),
-        Expanded(child: PlantView(plant: companion.plant)),
+        Expanded(
+          child: PlantView(plant: companion.plant, animate: justSaved),
+        ),
         const SizedBox(height: AppTokens.spacing * 4),
         if (isEmpty) ...[
           Text(
@@ -95,11 +106,32 @@ class _CompanionBody extends ConsumerWidget {
               color: AppTokens.textSecondary,
             ),
           ),
+        ] else if (completedToday && todayEvent != null) ...[
+          // Design 3 completed state (ADR 0006 #7): delta-derived headline,
+          // calm status, no-pressure support.
+          Center(
+            child: MoodTag(
+              mood: todayEvent.mood,
+              text: 'Today · ${todayEvent.mood.label} · saved',
+            ),
+          ),
+          const SizedBox(height: AppTokens.spacing * 2),
+          Text(
+            growthHeadline(todayEvent.growthDelta),
+            textAlign: TextAlign.center,
+            style: textTheme.titleLarge?.copyWith(letterSpacing: 1),
+          ),
+          const SizedBox(height: AppTokens.spacing * 2),
+          Text(
+            'Come back tomorrow, or don\'t. It keeps.',
+            textAlign: TextAlign.center,
+            style: textTheme.bodySmall?.copyWith(
+              color: AppTokens.textSecondary,
+            ),
+          ),
         ] else ...[
           Text(
-            completedToday
-                ? 'Today\'s check-in is complete.'
-                : 'Ready for today\'s reflection.',
+            'Ready for today\'s reflection.',
             textAlign: TextAlign.center,
             style: textTheme.bodyLarge,
           ),

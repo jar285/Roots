@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fakes.dart';
@@ -40,6 +41,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('USE THIS PHOTO'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Happy'));
+    await tester.pump();
     await tester.tap(find.text('Happy'));
     await tester.pump();
     await tester.tap(find.text('CONTINUE'));
@@ -176,6 +179,12 @@ void main() {
     expect(find.text('KEEP CURRENT PHOTO'), findsOneWidget);
     await tester.tap(find.text('KEEP CURRENT PHOTO'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Silly'),
+      80,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
     await tester.tap(find.text('Silly'));
     await tester.pump();
     await tester.tap(find.text('CONTINUE'));
