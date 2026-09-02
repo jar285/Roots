@@ -8,6 +8,7 @@ import '../check_in/check_in_flow.dart';
 import '../plant/plant_view.dart';
 import '../theme/app_theme.dart';
 import '../theme/mood_glyph.dart';
+import 'date_line.dart';
 import 'growth_headline.dart';
 
 /// Home answers: what has my plant become, and what can I do today?
@@ -58,12 +59,18 @@ class _CompanionBody extends ConsumerWidget {
       Future.microtask(() => ref.read(justSavedProvider.notifier).consume());
     }
 
+    void startFlow() {
+      ref.read(checkInFlowProvider.notifier).start();
+      context.go('/check-in/capture');
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            clampedDisplay(child: const Text('ROOTS', style: wordmarkStyle)),
+            const Spacer(),
             TextButton(
               onPressed: () => context.go('/history'),
               child: const Text('HISTORY'),
@@ -74,80 +81,95 @@ class _CompanionBody extends ConsumerWidget {
             ),
           ],
         ),
+        const SizedBox(height: AppTokens.spacing * 2),
         Expanded(
           child: PlantView(plant: companion.plant, animate: justSaved),
         ),
-        const SizedBox(height: AppTokens.spacing * 4),
+        const SizedBox(height: AppTokens.spacing * 5),
+        // Design 3: eyebrow + heavy left-aligned display headline + support.
         if (isEmpty) ...[
-          Text(
-            'GROW SOMETHING PERSONAL',
-            textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(letterSpacing: 2),
+          clampedDisplay(
+            child: Text(
+              dateLine(companion.todayLocalDate),
+              style: eyebrowStyle,
+            ),
+          ),
+          const SizedBox(height: AppTokens.spacing * 2),
+          clampedDisplay(
+            child: const Text('GROW SOMETHING PERSONAL', style: displayStyle),
           ),
           const SizedBox(height: AppTokens.spacing * 2),
           Text(
             'One private check-in can add to your plant each day.',
-            textAlign: TextAlign.center,
             style: textTheme.bodyMedium?.copyWith(
               color: AppTokens.textSecondary,
             ),
           ),
         ] else if (companion.plant.isMature && completedToday) ...[
-          Text(
-            'YOUR PLANT IS FULLY GROWN',
-            textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(letterSpacing: 2),
+          clampedDisplay(
+            child: Text(
+              dateLine(companion.todayLocalDate),
+              style: eyebrowStyle,
+            ),
+          ),
+          const SizedBox(height: AppTokens.spacing * 2),
+          clampedDisplay(
+            child: const Text('YOUR PLANT IS FULLY GROWN', style: displayStyle),
           ),
           const SizedBox(height: AppTokens.spacing * 2),
           Text(
             'Today\'s reflection has been saved to its story.',
-            textAlign: TextAlign.center,
             style: textTheme.bodyMedium?.copyWith(
               color: AppTokens.textSecondary,
             ),
           ),
         ] else if (completedToday && todayEvent != null) ...[
-          // Design 3 completed state (ADR 0006 #7): delta-derived headline,
-          // calm status, no-pressure support.
-          Center(
-            child: MoodTag(
-              mood: todayEvent.mood,
-              text: 'Today · ${todayEvent.mood.label} · saved',
+          // Delta-derived headline (ADR 0006 #7): never claims growth the
+          // stored delta lacks.
+          MoodTag(
+            mood: todayEvent.mood,
+            text: 'Today · ${todayEvent.mood.label} · saved',
+          ),
+          const SizedBox(height: AppTokens.spacing * 2),
+          clampedDisplay(
+            child: Text(
+              growthHeadline(todayEvent.growthDelta).toUpperCase(),
+              style: displayStyle,
             ),
           ),
           const SizedBox(height: AppTokens.spacing * 2),
           Text(
-            growthHeadline(todayEvent.growthDelta),
-            textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(letterSpacing: 1),
-          ),
-          const SizedBox(height: AppTokens.spacing * 2),
-          Text(
             'Come back tomorrow, or don\'t. It keeps.',
-            textAlign: TextAlign.center,
             style: textTheme.bodySmall?.copyWith(
               color: AppTokens.textSecondary,
             ),
           ),
         ] else ...[
-          Text(
-            'Ready for today\'s reflection.',
-            textAlign: TextAlign.center,
-            style: textTheme.bodyLarge,
+          clampedDisplay(
+            child: Text(
+              dateLine(companion.todayLocalDate),
+              style: eyebrowStyle,
+            ),
+          ),
+          const SizedBox(height: AppTokens.spacing * 2),
+          clampedDisplay(
+            child: const Text(
+              'READY FOR TODAY\'S REFLECTION',
+              style: displayStyle,
+            ),
           ),
         ],
-        const SizedBox(height: AppTokens.spacing * 4),
-        FilledButton(
-          onPressed: () {
-            ref.read(checkInFlowProvider.notifier).start();
-            context.go('/check-in/capture');
-          },
-          child: Text(
-            completedToday
-                ? 'REVIEW TODAY\'S CHECK-IN'
-                : 'TAKE TODAY\'S SELFIE',
+        const SizedBox(height: AppTokens.spacing * 5),
+        if (completedToday)
+          OutlinedButton(
+            onPressed: startFlow,
+            child: const Text('REVIEW TODAY\'S CHECK-IN'),
+          )
+        else
+          FilledButton(
+            onPressed: startFlow,
+            child: const Text('TAKE TODAY\'S SELFIE'),
           ),
-        ),
         const SizedBox(height: AppTokens.spacing * 3),
         Text(
           'Your selfie stays on this device.',

@@ -28,20 +28,31 @@ class MoodScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  clampedDisplay(
+                    child: const Text(
+                      'HOW ARE YOU FEELING?',
+                      style: displayStyle,
+                    ),
+                  ),
+                  const SizedBox(height: AppTokens.spacing * 2),
                   Text(
-                    'HOW ARE YOU FEELING?',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(letterSpacing: 2),
+                    'You choose it. Roots never reads your face.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTokens.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: AppTokens.spacing * 4),
                   Expanded(
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: AppTokens.spacing * 3,
-                      crossAxisSpacing: AppTokens.spacing * 3,
-                      childAspectRatio: 1.7,
+                    child: GridView(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: AppTokens.spacing * 3,
+                        crossAxisSpacing: AppTokens.spacing * 3,
+                        // Cards grow with the user's text scale instead
+                        // of clipping labels (UI/UX philosophy).
+                        mainAxisExtent:
+                            64 + MediaQuery.textScalerOf(context).scale(52),
+                      ),
                       children: [
                         for (final mood in Mood.values)
                           _MoodOption(

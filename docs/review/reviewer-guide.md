@@ -43,6 +43,9 @@ This guide grows sprint by sprint toward the spec's thirty-minute review path
    (skipped under reduced motion), and the mature flourish.
 6. Visual baselines live in `test/presentation/goldens/` — including the plant after
    30/90/180/365 simulated days, the maturity pacing gate's review artifacts.
+7. For design review with real typography (goldens use the blocky test font), run
+   `flutter test test/presentation/design_preview_test.dart` and open
+   `build/design_previews/*.png`.
 
 ## Not yet reviewable
 - Real mobile camera and permissions — Sprint 6.

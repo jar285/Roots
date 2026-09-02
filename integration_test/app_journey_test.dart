@@ -96,7 +96,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 09:30 morning + Happy -> 4 leaves (spec A.3, delta-derived headline).
-    expect(find.text('4 new leaves are part of it now.'), findsOneWidget);
+    expect(find.text('4 NEW LEAVES ARE PART OF IT NOW.'), findsOneWidget);
     expect(
       find.text('Come back tomorrow, or don\'t. It keeps.'),
       findsOneWidget,
@@ -117,7 +117,7 @@ void main() {
     final secondRun = await launchApp();
     addTearDown(secondRun.close);
 
-    expect(find.text('4 new leaves are part of it now.'), findsOneWidget);
+    expect(find.text('4 NEW LEAVES ARE PART OF IT NOW.'), findsOneWidget);
     expect(
       find.bySemanticsLabel(RegExp(r'Your plant: 1 check-in')),
       findsOneWidget,

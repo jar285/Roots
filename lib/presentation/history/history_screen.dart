@@ -17,10 +17,7 @@ class HistoryScreen extends ConsumerWidget {
     final history = ref.watch(historyProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('HISTORY'),
-        backgroundColor: AppTokens.background,
-      ),
+      appBar: AppBar(backgroundColor: AppTokens.background),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -40,9 +37,35 @@ class HistoryScreen extends ConsumerWidget {
               ),
               AsyncData(:final value) => ListView.builder(
                 padding: const EdgeInsets.all(AppTokens.spacing * 4),
-                itemCount: value.length,
-                itemBuilder: (context, index) =>
-                    _HistoryRow(event: value[index]),
+                itemCount: value.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    final count = value.length == 1
+                        ? '1 CHECK-IN'
+                        : '${value.length} CHECK-INS';
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTokens.spacing * 5,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          clampedDisplay(
+                            child: const Text('HISTORY', style: displayStyle),
+                          ),
+                          const SizedBox(height: AppTokens.spacing * 2),
+                          clampedDisplay(
+                            child: Text(
+                              '$count · KEPT ON THIS DEVICE',
+                              style: eyebrowStyle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return _HistoryRow(event: value[index - 1]);
+                },
               ),
               AsyncError() => Center(
                 child: Column(
@@ -99,29 +122,34 @@ class _HistoryRow extends ConsumerWidget {
                   padding: const EdgeInsets.all(AppTokens.spacing * 3),
                   child: Row(
                     children: [
-                      EventThumbnail(event: event, size: 56),
-                      const SizedBox(width: AppTokens.spacing * 4),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              event.localDate,
-                              style: Theme.of(context).textTheme.bodyLarge,
+                            // Design 3: mood leads in bold with its glyph.
+                            Row(
+                              children: [
+                                MoodGlyph(mood: event.mood, size: 15),
+                                const SizedBox(width: AppTokens.spacing * 2),
+                                Text(
+                                  event.mood.label,
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                              ],
                             ),
-                            MoodTag(
-                              mood: event.mood,
-                              text:
-                                  '${event.mood.label} · '
-                                  '${event.timeCategory.name}',
+                            const SizedBox(height: AppTokens.spacing),
+                            Text(
+                              '${event.localDate} · '
+                              '${event.timeCategory.name}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: AppTokens.textSecondary),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.chevron_right,
-                        color: AppTokens.textSecondary,
-                      ),
+                      const SizedBox(width: AppTokens.spacing * 3),
+                      EventThumbnail(event: event, size: 56),
                     ],
                   ),
                 ),

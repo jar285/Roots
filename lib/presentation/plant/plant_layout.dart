@@ -142,8 +142,8 @@ class PlantLayout {
       leaves: place(
         state.leaves,
         PlantElementKind.leaf,
-        baseReach: size.width * 0.11,
-        elementSize: 11,
+        baseReach: size.width * 0.12,
+        elementSize: 14,
       ),
       decorations: place(
         state.decorations,

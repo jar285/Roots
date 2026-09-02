@@ -70,7 +70,7 @@ void main() {
     // Design 3 completed state (ADR 0006): delta-derived headline, calm
     // status line, and the no-pressure support copy.
     // Fixture: afternoon + calm -> 5 leaves (spec A.3).
-    expect(find.text('5 new leaves are part of it now.'), findsOneWidget);
+    expect(find.text('5 NEW LEAVES ARE PART OF IT NOW.'), findsOneWidget);
     expect(find.text('Today · Calm · saved'), findsOneWidget);
     expect(
       find.text('Come back tomorrow, or don\'t. It keeps.'),

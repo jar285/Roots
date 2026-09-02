@@ -98,7 +98,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // pumpApp clock: afternoon; Happy -> 6 leaves (spec A.3 + ADR 0006 #7).
-    expect(find.text('6 new leaves are part of it now.'), findsOneWidget);
+    expect(find.text('6 NEW LEAVES ARE PART OF IT NOW.'), findsOneWidget);
     expect(find.text('Today · Happy · saved'), findsOneWidget);
     expect(find.text('REVIEW TODAY\'S CHECK-IN'), findsOneWidget);
     expect(
@@ -134,7 +134,7 @@ void main() {
       // transition itself is platform-default motion).
       await tester.pumpAndSettle();
 
-      expect(find.text('6 new leaves are part of it now.'), findsOneWidget);
+      expect(find.text('6 NEW LEAVES ARE PART OF IT NOW.'), findsOneWidget);
       expect(
         find.bySemanticsLabel(RegExp(r'Your plant: 1 check-in')),
         findsOneWidget,

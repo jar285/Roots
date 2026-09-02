@@ -57,6 +57,41 @@ Color paletteAccent(String paletteId) {
   return mood?.accent ?? AppTokens.plantGreen;
 }
 
+/// Design 3 typographic voice: short ritual headlines are big, heavy, and
+/// left-aligned; eyebrows are small letterspaced caps. Body copy everywhere
+/// else stays sentence case (UI/UX philosophy).
+const TextStyle displayStyle = TextStyle(
+  fontSize: 30,
+  fontWeight: FontWeight.w800,
+  height: 1.12,
+  letterSpacing: 0.3,
+  color: AppTokens.textPrimary,
+);
+
+const TextStyle eyebrowStyle = TextStyle(
+  fontSize: 12,
+  fontWeight: FontWeight.w600,
+  letterSpacing: 2.4,
+  color: AppTokens.textSecondary,
+);
+
+const TextStyle wordmarkStyle = TextStyle(
+  fontSize: 13,
+  fontWeight: FontWeight.w700,
+  letterSpacing: 4,
+  color: AppTokens.textPrimary,
+);
+
+/// Display headlines are already large; they scale up to 1.4× so 200% body
+/// text never pushes the ritual off screen (WCAG 1.4.4 targets body text —
+/// controls and copy keep the full user scale).
+Widget clampedDisplay({required Widget child}) {
+  return Builder(
+    builder: (context) =>
+        MediaQuery.withClampedTextScaling(maxScaleFactor: 1.4, child: child),
+  );
+}
+
 ThemeData buildAppTheme() {
   final base = ThemeData(
     useMaterial3: true,
@@ -79,13 +114,26 @@ ThemeData buildAppTheme() {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(AppTokens.minTouchTarget),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radius),
+        minimumSize: const Size.fromHeight(AppTokens.minTouchTarget + 6),
+        shape: const StadiumBorder(),
+        textStyle: base.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.4,
         ),
-        textStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(AppTokens.minTouchTarget + 6),
+        shape: const StadiumBorder(),
+        foregroundColor: AppTokens.textPrimary,
+        side: BorderSide(
+          color: AppTokens.textPrimary.withValues(alpha: 0.55),
+          width: 1.2,
+        ),
+        textStyle: base.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.4,
         ),
       ),
     ),
@@ -96,6 +144,11 @@ ThemeData buildAppTheme() {
           AppTokens.minTouchTarget,
         ),
         foregroundColor: AppTokens.textSecondary,
+        textStyle: base.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.4,
+          fontSize: 12,
+        ),
       ),
     ),
   );

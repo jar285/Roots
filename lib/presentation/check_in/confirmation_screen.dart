@@ -74,12 +74,13 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    editingToday
-                        ? 'REVIEW TODAY\'S CHECK-IN'
-                        : 'ADD TODAY\'S GROWTH?',
-                    textAlign: TextAlign.center,
-                    style: textTheme.titleLarge?.copyWith(letterSpacing: 2),
+                  clampedDisplay(
+                    child: Text(
+                      editingToday
+                          ? 'REVIEW TODAY\'S CHECK-IN'
+                          : 'ADD TODAY\'S GROWTH?',
+                      style: displayStyle.copyWith(fontSize: 26),
+                    ),
                   ),
                   const SizedBox(height: AppTokens.spacing * 4),
                   Expanded(child: _PhotoPreview(draft: draft)),

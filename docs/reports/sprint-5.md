@@ -123,6 +123,37 @@ rendered pairs; large-text proven by tests. Manual VoiceOver walk on the macOS b
 - User to eyeball the four pacing goldens and confirm the growth arc feels right
   (gate stays open until then; constants unchanged).
 
+## QA/QC addendum (2026-09-01, user-requested design conformance pass)
+
+**Finding (user + agent agreed):** the first Sprint 5 pass built Design 3's structure
+(arch, glyphs, palette, copy) but flattened its typographic voice into centered
+Material defaults — and the Ahem-font goldens could never have caught it. Fixes, all
+test-first where behavior changed:
+
+- **Typographic voice**: heavy left-aligned display headlines (w800/30), letterspaced
+  eyebrows, ROOTS wordmark, pill (stadium) buttons via `labelLarge`-derived styles that
+  keep Material's font pipeline; the completed headline renders in caps.
+- **Composition**: date eyebrow ("WEDNESDAY 2 SEPTEMBER", English-only helper with unit
+  tests); completed state uses an **outlined** REVIEW pill (green fill reserved for the
+  primary daily action); History gained its display header + "N CHECK-INS · KEPT ON
+  THIS DEVICE" and Design 3 rows (mood-led bold + glyph, date·time beneath, thumbnail
+  right, accent strip).
+- **Plant organics**: leaves sized up and tied to the stem with fine petioles; curvier
+  trunk; growth-scaled element sizes so seedlings look like seedlings.
+- **Two rendering defects found by inspection**: the arch glow rendered as a see-through
+  donut (BoxDecoration ignores `color` under `gradient` — both stops are now opaque
+  blends) and button labels dropped the font pipeline.
+- **A real accessibility catch**: the 200%-scale tests failed against the new display
+  type — fixed by clamping display-family text at 1.4× (body/controls keep full 2×,
+  WCAG 1.4.4) and letting mood cards grow with the text scale instead of clipping.
+- **New permanent tool**: `test/presentation/design_preview_test.dart` renders key
+  screens **with real fonts** to `build/design_previews/*.png` — the review artifacts
+  Ahem goldens can't provide. Rendered pixels of Home (empty/completed) and History
+  were inspected against `Roots - Design 3.png` this pass.
+
+Post-addendum verification: **212 tests passing**, analyze/format clean, goldens
+re-baselined, macOS integration journey re-passed.
+
 ## Diminishing returns
 
 No goldens for every screen permutation (would freeze incidental pixels); no custom

@@ -76,12 +76,18 @@ class _PlantViewState extends State<PlantView>
                   top: Radius.circular(archRadius),
                   bottom: const Radius.circular(AppTokens.radius),
                 ),
+                // BoxDecoration ignores `color` when a gradient is set, so
+                // both stops must be opaque: a green-tinted surface at the
+                // center fading to plain surface (no see-through donut).
                 gradient: RadialGradient(
-                  center: const Alignment(0, 0.45),
-                  radius: 0.95,
-                  stops: const [0.0, 0.65],
+                  center: const Alignment(0, 0.3),
+                  radius: 0.9,
+                  stops: const [0.0, 0.6],
                   colors: [
-                    AppTokens.plantGreen.withValues(alpha: 0.12),
+                    Color.alphaBlend(
+                      AppTokens.plantGreen.withValues(alpha: 0.10),
+                      AppTokens.surface,
+                    ),
                     AppTokens.surface,
                   ],
                 ),
@@ -161,7 +167,7 @@ class OrganicPlantPainter extends CustomPainter {
     final revealedTop = Offset(base.dx, base.dy - fullLength * progress);
 
     // A gentle deterministic S-curve keeps the stem organic.
-    final bend = math.min(14.0, fullLength * 0.08);
+    final bend = math.min(22.0, fullLength * 0.11);
     final path = Path()
       ..moveTo(base.dx, base.dy)
       ..cubicTo(
@@ -194,6 +200,16 @@ class OrganicPlantPainter extends CustomPainter {
         case PlantElementKind.branch:
           _paintBranch(canvas, element, trunkX);
         case PlantElementKind.leaf:
+          // A fine petiole ties each leaf to the stem so the plant reads as
+          // one organism (Design 3 QA pass).
+          canvas.drawLine(
+            Offset(trunkX, element.center.dy + element.size * 0.3),
+            element.center,
+            Paint()
+              ..color = AppTokens.plantGreen.withValues(alpha: 0.45)
+              ..strokeWidth = 1.6
+              ..strokeCap = StrokeCap.round,
+          );
           _paintLeaf(canvas, element);
         case PlantElementKind.decoration:
           canvas.drawCircle(

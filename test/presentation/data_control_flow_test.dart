@@ -53,11 +53,13 @@ void main() {
     await tester.tap(find.text('HISTORY'));
     await tester.pumpAndSettle();
 
-    final sept2 = tester.getTopLeft(find.text('2026-09-02'));
-    final sept1 = tester.getTopLeft(find.text('2026-09-01'));
+    // Design 3 rows: mood leads in bold, date + time category beneath.
+    final sept2 = tester.getTopLeft(find.text('2026-09-02 · afternoon'));
+    final sept1 = tester.getTopLeft(find.text('2026-09-01 · afternoon'));
     expect(sept2.dy, lessThan(sept1.dy), reason: 'newest first');
-    expect(find.text('Happy · afternoon'), findsOneWidget);
-    expect(find.text('Calm · afternoon'), findsOneWidget);
+    expect(find.text('Happy'), findsOneWidget);
+    expect(find.text('Calm'), findsOneWidget);
+    expect(find.text('2 CHECK-INS · KEPT ON THIS DEVICE'), findsOneWidget);
   });
 
   testWidgets('event detail explains the contribution and a missing photo '
@@ -72,7 +74,7 @@ void main() {
 
     await tester.tap(find.text('HISTORY'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2026-09-01'));
+    await tester.tap(find.text('2026-09-01 · afternoon'));
     await tester.pumpAndSettle();
 
     expect(
@@ -96,7 +98,7 @@ void main() {
 
     await tester.tap(find.text('HISTORY'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2026-09-01'));
+    await tester.tap(find.text('2026-09-01 · afternoon'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('DELETE THIS CHECK-IN'));
     await tester.pumpAndSettle();
