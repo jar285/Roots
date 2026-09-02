@@ -18,7 +18,7 @@ class SimulatedCameraSource implements CameraSource {
   static const int _edge = 320;
 
   @override
-  Future<CapturedPhoto?> capture() async {
+  Future<CaptureResult> capture() async {
     final localDate = clock.now().localDate;
     // Repo-owned fold instead of String.hashCode, which is not stable
     // across SDK versions (same reasoning as ADR 0002's PRNG).
@@ -50,6 +50,6 @@ class SimulatedCameraSource implements CameraSource {
     );
 
     final bytes = Uint8List.fromList(img.encodeJpg(image, quality: 85));
-    return CapturedPhoto(bytes: bytes);
+    return CapturePhoto(CapturedPhoto(bytes: bytes));
   }
 }

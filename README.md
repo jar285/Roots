@@ -57,7 +57,7 @@ ships with an ADR and a QA report that separates verified from not verified.
 | 3 | Simulated vertical slice on macOS (Home → confirm → grown plant) | ✅ [report](docs/reports/sprint-3.md) |
 | 4 | Same-day correction, deletion, Start Over, media reconciliation | ✅ [report](docs/reports/sprint-4.md) |
 | 5 | Plant painter, historical styling, accessibility, goldens | ✅ [report](docs/reports/sprint-5.md) |
-| 6 | Real mobile camera & permissions | 🔜 |
+| 6 | Real mobile camera & permissions | ✅ [report](docs/reports/sprint-6.md) |
 | 7 | Release journey (Patrol, clean-checkout proof) | 🔜 |
 
 **Targets:** iOS and Android are the product surfaces. macOS is a deterministic
@@ -83,7 +83,7 @@ Everyday commands:
 flutter pub get
 dart format --output=none --set-exit-if-changed lib test integration_test
 flutter analyze
-flutter test                            # 209 tests: domain, storage, media, app, visuals
+flutter test                            # 236 tests: domain, storage, media, app, visuals
 flutter test integration_test -d macos  # deterministic reviewer journey (Xcode)
 flutter run -d macos                    # the app itself (Xcode)
 ```

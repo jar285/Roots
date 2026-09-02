@@ -10,6 +10,7 @@ import '../contracts/companion_repository.dart';
 import '../contracts/id_source.dart';
 import '../contracts/managed_media_store.dart';
 import '../contracts/seed_source.dart';
+import '../infrastructure/mobile_camera_source.dart';
 import '../domain/model/growth_event.dart';
 import '../domain/projection/plant_projector.dart';
 
@@ -33,6 +34,12 @@ final idSourceProvider = Provider<IdSource>(
 );
 final seedSourceProvider = Provider<SeedSource>(
   (ref) => throw UnimplementedError('override seedSourceProvider'),
+);
+
+/// Deep-link to the OS settings page for a permanently denied camera
+/// (ADR 0008 #2). Overridden in tests to assert the call.
+final appSettingsLauncherProvider = Provider<AppSettingsLauncher>(
+  (ref) => const PlatformAppSettingsLauncher(),
 );
 
 final projectorRegistryProvider = Provider<ProjectorRegistry>(

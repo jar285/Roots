@@ -8,7 +8,7 @@
 PRODUCT_NAME = roots
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = app.roots.roots
+PRODUCT_BUNDLE_IDENTIFIER = com.jesusrosario.roots
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 app.roots. All rights reserved.

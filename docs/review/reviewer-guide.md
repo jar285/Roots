@@ -47,8 +47,17 @@ This guide grows sprint by sprint toward the spec's thirty-minute review path
    `flutter test test/presentation/design_preview_test.dart` and open
    `build/design_previews/*.png`.
 
+8. On iOS: `flutter build ios --simulator --debug` then
+   `xcrun simctl install <device> build/ios/iphonesimulator/Runner.app` and
+   `xcrun simctl launch <device> com.jesusrosario.roots` runs the real app. The
+   simulator has no camera, so TAKE TODAY'S SELFIE demonstrates the camera-absent
+   recovery path; real capture needs a cabled device with Developer Mode.
+   Backup exclusion can be checked with
+   `xattr -l "$(xcrun simctl get_app_container <device> com.jesusrosario.roots data)/Documents"`.
+
 ## Not yet reviewable
-- Real mobile camera and permissions — Sprint 6.
+- Real capture on a physical iOS device; all Android device behavior — carried forward
+  from Sprint 6 (see its report's "Not verified").
 - Patrol journey and release evidence — Sprint 7.
 
 Each sprint's QA report in [../reports/](../reports/) lists exactly what was verified and

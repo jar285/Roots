@@ -10,6 +10,7 @@ import 'application/reconcile_managed_media.dart';
 import 'infrastructure/drift/companion_database.dart';
 import 'infrastructure/drift/drift_companion_repository.dart';
 import 'infrastructure/fs_managed_media_store.dart';
+import 'infrastructure/mobile_camera_source.dart';
 import 'infrastructure/simulated_camera_source.dart';
 import 'infrastructure/system_clock.dart';
 import 'infrastructure/system_seed_source.dart';
@@ -41,9 +42,12 @@ Future<void> main() async {
         repositoryProvider.overrideWithValue(repository),
         mediaStoreProvider.overrideWithValue(mediaStore),
         clockProvider.overrideWithValue(const SystemClock()),
-        // All platforms simulate capture until Sprint 6 (ADR 0004 #3).
+        // Real capture on the product surfaces; the deterministic simulated
+        // source stays the reviewer path everywhere else (ADR 0008 #8).
         cameraSourceProvider.overrideWith(
-          (ref) => SimulatedCameraSource(clock: ref.watch(clockProvider)),
+          (ref) => (Platform.isIOS || Platform.isAndroid)
+              ? MobileCameraSource()
+              : SimulatedCameraSource(clock: ref.watch(clockProvider)),
         ),
         idSourceProvider.overrideWithValue(const UuidIdSource()),
         seedSourceProvider.overrideWithValue(SystemSeedSource()),

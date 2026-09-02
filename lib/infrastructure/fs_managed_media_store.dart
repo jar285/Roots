@@ -1,9 +1,47 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
 import '../contracts/managed_media_store.dart';
+
+/// Decode → resize (max 800px edge) → JPEG q85. Top-level and pure so it can
+/// run on a background isolate (ADR 0008 #5): the same bytes always produce
+/// the same processed output, off the UI isolate.
+Uint8List processPhotoBytes(Uint8List bytes) {
+  const maxEdge = 800;
+  const jpegQuality = 85;
+
+  img.Image? decoded;
+  try {
+    decoded = img.decodeImage(bytes);
+  } catch (e) {
+    throw _UndecodableImage('bytes are not a decodable image: $e');
+  }
+  if (decoded == null) {
+    throw const _UndecodableImage('bytes are not a decodable image');
+  }
+
+  final longest = decoded.width > decoded.height
+      ? decoded.width
+      : decoded.height;
+  final resized = longest > maxEdge
+      ? img.copyResize(
+          decoded,
+          width: decoded.width >= decoded.height ? maxEdge : null,
+          height: decoded.height > decoded.width ? maxEdge : null,
+        )
+      : decoded;
+  return Uint8List.fromList(img.encodeJpg(resized, quality: jpegQuality));
+}
+
+/// Isolate-safe marker translated back into [InvalidPhotoException] on the
+/// calling isolate (exception identity must survive the boundary).
+class _UndecodableImage implements Exception {
+  const _UndecodableImage(this.detail);
+  final String detail;
+}
 
 /// Filesystem adapter for the private managed-photo lifecycle (ADR 0005).
 ///
@@ -15,9 +53,6 @@ class FsManagedMediaStore implements ManagedMediaStore {
   FsManagedMediaStore({required this.baseDirectory});
 
   final Directory baseDirectory;
-
-  static const int _maxEdge = 800;
-  static const int _jpegQuality = 85;
 
   static final RegExp _safeEventId = RegExp(r'^[A-Za-z0-9_-]+$');
   static final RegExp _safeFinalName = RegExp(r'^[A-Za-z0-9_-]+\.jpg$');
@@ -48,31 +83,15 @@ class FsManagedMediaStore implements ManagedMediaStore {
   }) async {
     _requireSafeEventId(eventId);
 
-    // Spec §5.4 steps 2–4: validate, resize, encode, stage. Decoders may
-    // either return null or throw on malformed data — both are the same
-    // recoverable outcome here.
-    img.Image? decoded;
+    // Spec §5.4 steps 2–4: validate, resize, encode, stage. The CPU-bound
+    // work runs on a background isolate so capture never janks the UI
+    // (ADR 0008 #5).
+    final Uint8List processed;
     try {
-      decoded = img.decodeImage(bytes);
-    } catch (e) {
-      throw InvalidPhotoException('bytes are not a decodable image: $e');
+      processed = await Isolate.run(() => processPhotoBytes(bytes));
+    } on _UndecodableImage catch (e) {
+      throw InvalidPhotoException(e.detail);
     }
-    if (decoded == null) {
-      throw const InvalidPhotoException('bytes are not a decodable image');
-    }
-    final longest = decoded.width > decoded.height
-        ? decoded.width
-        : decoded.height;
-    final resized = longest > _maxEdge
-        ? img.copyResize(
-            decoded,
-            width: decoded.width >= decoded.height ? _maxEdge : null,
-            height: decoded.height > decoded.width ? _maxEdge : null,
-          )
-        : decoded;
-    final processed = Uint8List.fromList(
-      img.encodeJpg(resized, quality: _jpegQuality),
-    );
 
     await _stagingDir.create(recursive: true);
     await _stagedFile(eventId, tag).writeAsBytes(processed, flush: true);

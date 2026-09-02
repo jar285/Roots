@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
+import 'package:roots/contracts/camera_source.dart';
 import 'package:roots/domain/model/check_in_moment.dart';
 import 'package:roots/infrastructure/simulated_camera_source.dart';
 
@@ -17,10 +18,10 @@ void main() {
     () async {
       final camera = SimulatedCameraSource(clock: FixedClock(moment(1)));
 
-      final photo = await camera.capture();
+      final result = await camera.capture();
 
-      expect(photo, isNotNull);
-      final decoded = img.decodeImage(photo!.bytes);
+      expect(result, isA<CapturePhoto>());
+      final decoded = img.decodeImage((result as CapturePhoto).photo.bytes);
       expect(decoded, isNotNull);
       expect(decoded!.width, lessThanOrEqualTo(800));
       expect(decoded.height, lessThanOrEqualTo(800));
@@ -30,20 +31,20 @@ void main() {
   test('is deterministic for the same local date', () async {
     final camera = SimulatedCameraSource(clock: FixedClock(moment(1)));
 
-    final first = await camera.capture();
-    final second = await camera.capture();
+    final first = await camera.capture() as CapturePhoto;
+    final second = await camera.capture() as CapturePhoto;
 
-    expect(first!.bytes, second!.bytes);
+    expect(first.photo.bytes, second.photo.bytes);
   });
 
   test('different local dates produce different placeholders', () async {
-    final day1 = await SimulatedCameraSource(
-      clock: FixedClock(moment(1)),
-    ).capture();
-    final day2 = await SimulatedCameraSource(
-      clock: FixedClock(moment(2)),
-    ).capture();
+    final day1 =
+        await SimulatedCameraSource(clock: FixedClock(moment(1))).capture()
+            as CapturePhoto;
+    final day2 =
+        await SimulatedCameraSource(clock: FixedClock(moment(2))).capture()
+            as CapturePhoto;
 
-    expect(day1!.bytes, isNot(day2!.bytes));
+    expect(day1.photo.bytes, isNot(day2.photo.bytes));
   });
 }

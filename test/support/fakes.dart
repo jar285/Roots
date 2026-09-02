@@ -114,11 +114,14 @@ class InMemoryManagedMediaStore implements ManagedMediaStore {
 }
 
 class FakeCameraSource implements CameraSource {
-  FakeCameraSource({this.photo});
+  FakeCameraSource({CaptureResult? result, CapturedPhoto? photo})
+    : result =
+          result ??
+          (photo != null ? CapturePhoto(photo) : const CaptureCancelled());
 
-  /// Null simulates the user cancelling capture.
-  CapturedPhoto? photo;
+  /// Swap between attempts to simulate a retry that then succeeds.
+  CaptureResult result;
 
   @override
-  Future<CapturedPhoto?> capture() async => photo;
+  Future<CaptureResult> capture() async => result;
 }

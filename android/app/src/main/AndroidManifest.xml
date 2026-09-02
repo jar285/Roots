@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The camera is the daily ritual, but the app still works without it
+         (simulation/recovery paths), so it is not required for install. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
-        android:label="roots"
+        android:label="Plant Selfie"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
